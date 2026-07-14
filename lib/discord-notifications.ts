@@ -1,83 +1,227 @@
 /**
- * Утилита для отправки уведомлений в Discord бота
+ * Discord Notifications - отправка различных уведомлений в Discord
  */
 
-interface NotificationData {
-  type: 'BALANCE' | 'SERVER' | 'USER' | 'ADMIN' | 'BAN' | 'APPEAL';
-  data: any;
-}
+const WEBHOOK_URL = process.env.DISCORD_BOT_WEBHOOK_URL;
+const WEBHOOK_SECRET = process.env.INTERNAL_WEBHOOK_SECRET;
 
 /**
- * Отправить уведомление в Discord бота
+ * Базовая функция для отправки webhook
  */
-export async function sendDiscordNotification(notification: NotificationData) {
+async function sendWebhook(type: string, data: any) {
   try {
-    const webhookSecret = process.env.INTERNAL_WEBHOOK_SECRET || 'fluxor-internal-webhook';
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    if (!WEBHOOK_URL || !WEBHOOK_SECRET) {
+      console.log('⚠️ Discord webhook не настроен, пропускаем уведомление');
+      return false;
+    }
 
-    const response = await fetch(`${appUrl}/api/discord-webhook`, {
+    const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${webhookSecret}`
+        'Authorization': `Bearer ${WEBHOOK_SECRET}`
       },
-      body: JSON.stringify(notification)
+      body: JSON.stringify({ type, data })
     });
 
     if (!response.ok) {
-      console.error('Failed to send Discord notification:', await response.text());
+      console.error('❌ Ошибка отправки webhook в Discord:', response.status);
+      return false;
     }
+
+    console.log(`✅ Отправлено уведомление в Discord: ${type}`);
+    return true;
   } catch (error) {
-    console.error('Error sending Discord notification:', error);
+    console.error('❌ Ошибка отправки webhook:', error);
+    return false;
   }
 }
 
 /**
- * Уведомление о пополнении баланса
+ * Отправить уведомление о пополнении/списании баланса
  */
-export async function notifyBalanceDeposit(transaction: any) {
-  await sendDiscordNotification({
-    type: 'BALANCE',
-    data: transaction
+export async function sendBalanceNotification(data: {
+  userId: string;
+  amount: number;
+  newBalance: number;
+  description: string;
+  isAddition: boolean;
+}) {
+  // Получаем данные пользователя из БД
+  const { prisma } = await import('@/lib/db');
+  
+  const user = await prisma.user.findUnique({
+    where: { id: data.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      discordId: true,
+      balance: true
+    }
+  });
+
+  if (!user) {
+    console.error('Пользователь не найден:', data.userId);
+    return false;
+  }
+
+  return await sendWebhook('BALANCE', {
+    id: `balance_${Date.now()}`,
+    userId: user.id,
+    amount: data.isAddition ? data.amount : -data.amount,
+    method: 'MANUAL',
+    description: data.description,
+    createdAt: new Date().toISOString(),
+    user: {
+      name: user.name,
+      email: user.email,
+      discordId: user.discordId,
+      balance: user.balance
+    }
   });
 }
 
 /**
- * Уведомление о создании сервера
+ * Отправить уведомление о действии с сервером
  */
-export async function notifyServerCreated(server: any) {
-  await sendDiscordNotification({
-    type: 'SERVER',
-    data: { ...server, action: 'CREATE' }
+export async function sendServerNotification(serverId: string, action: 'CREATE' | 'DELETE' | 'SUSPEND' | 'UNSUSPEND' | 'RENEW') {
+  const { prisma } = await import('@/lib/db');
+  
+  const server = await prisma.server.findUnique({
+    where: { id: serverId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          discordId: true
+        }
+      },
+      plan: {
+        select: {
+          name: true,
+          category: true,
+          ram: true,
+          cpu: true,
+          disk: true
+        }
+      }
+    }
+  });
+
+  if (!server) {
+    console.error('Сервер не найден:', serverId);
+    return false;
+  }
+
+  return await sendWebhook('SERVER', {
+    ...server,
+    action
   });
 }
 
 /**
- * Уведомление о регистрации пользователя
+ * Отправить уведомление о действии пользователя
  */
-export async function notifyUserRegistered(user: any) {
-  await sendDiscordNotification({
-    type: 'USER',
-    data: { ...user, action: 'REGISTER' }
+export async function sendUserNotification(userId: string, action: 'REGISTER' | 'LOGIN' | 'VERIFY' | 'DISCORD_LINK') {
+  const { prisma } = await import('@/lib/db');
+  
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      discordId: true,
+      balance: true
+    }
+  });
+
+  if (!user) {
+    console.error('Пользователь не найден:', userId);
+    return false;
+  }
+
+  return await sendWebhook('USER', {
+    ...user,
+    action
   });
 }
 
 /**
- * Уведомление о бане пользователя
+ * Отправить уведомление о бане
  */
-export async function notifyUserBanned(ban: any, user: any) {
-  await sendDiscordNotification({
-    type: 'BAN',
-    data: { ban, user }
+export async function sendBanNotification(banId: string) {
+  const { prisma } = await import('@/lib/db');
+  
+  const ban = await prisma.ban.findUnique({
+    where: { id: banId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          discordId: true
+        }
+      }
+    }
+  });
+
+  if (!ban) {
+    console.error('Бан не найден:', banId);
+    return false;
+  }
+
+  return await sendWebhook('BAN', {
+    ban: {
+      id: ban.id,
+      userId: ban.userId,
+      banType: ban.banType,
+      reason: ban.reason,
+      expiresAt: ban.expiresAt,
+      createdAt: ban.createdAt
+    },
+    user: ban.user
   });
 }
 
 /**
- * Уведомление об апелляции
+ * Отправить уведомление об апелляции
  */
-export async function notifyAppealCreated(appeal: any, user: any) {
-  await sendDiscordNotification({
-    type: 'APPEAL',
-    data: { appeal, user }
+export async function sendAppealNotification(appealId: string) {
+  const { prisma } = await import('@/lib/db');
+  
+  const appeal = await prisma.banAppeal.findUnique({
+    where: { id: appealId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          discordId: true
+        }
+      }
+    }
+  });
+
+  if (!appeal) {
+    console.error('Апелляция не найдена:', appealId);
+    return false;
+  }
+
+  return await sendWebhook('APPEAL', {
+    appeal: {
+      id: appeal.id,
+      userId: appeal.userId,
+      reason: appeal.reason,
+      status: appeal.status,
+      reviewNote: appeal.reviewNote,
+      createdAt: appeal.createdAt
+    },
+    user: appeal.user
   });
 }

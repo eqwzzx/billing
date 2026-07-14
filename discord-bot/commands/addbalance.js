@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { getDbConnection } from '../utils/database.js';
 
 export default {
@@ -17,15 +17,14 @@ export default {
     .addStringOption(option =>
       option.setName('reason')
         .setDescription('Причина начисления')
-        .setRequired(false))
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+        .setRequired(false)),
   
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
     try {
       // Проверка, что пользователь админ в боте
-      const adminIds = process.env.ADMIN_DISCORD_IDS?.split(',') || [];
+      const adminIds = process.env.ADMIN_DISCORD_IDS?.split(',').map(id => id.trim()) || [];
       if (!adminIds.includes(interaction.user.id)) {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
@@ -40,7 +39,7 @@ export default {
       const connection = await getDbConnection();
       const userIdentifier = interaction.options.getString('user');
       const amount = interaction.options.getNumber('amount');
-      const reason = interaction.options.getString('reason') || 'Начисление администратором';
+      const reason = interaction.options.getString('reason') || 'Начисление администратором через Discord';
 
       // Поиск пользователя по email или Discord ID
       let user;
@@ -65,7 +64,7 @@ export default {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
           .setTitle('❌ Пользователь не найден')
-          .setDescription(`Пользователь с идентификатором \`${userIdentifier}\` не найден.`)
+          .setDescription(`Пользователь с идентификатором \`${userIdentifier}\` не найден в системе.`)
           .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
@@ -75,58 +74,89 @@ export default {
       const oldBalance = parseFloat(user.balance) || 0;
       const newBalance = oldBalance + amount;
 
-      // Обновляем баланс
-      await connection.execute(
-        'UPDATE User SET balance = ? WHERE id = ?',
-        [newBalance, user.id]
-      );
+      // Начинаем транзакцию
+      await connection.beginTransaction();
 
-      // Создаём запись о транзакции
-      await connection.execute(
-        'INSERT INTO Payment (userId, amount, method, status, description, paymentId) VALUES (?, ?, ?, ?, ?, ?)',
-        [user.id, amount, 'MANUAL', 'COMPLETED', `Начисление администратором: ${reason}`, `ADMIN_${Date.now()}`]
-      );
+      try {
+        // Обновляем баланс
+        await connection.execute(
+          'UPDATE User SET balance = ? WHERE id = ?',
+          [newBalance, user.id]
+        );
 
-      // Логируем действие
-      await connection.execute(
-        'INSERT INTO AdminLog (userId, action, description, ipAddress) VALUES (?, ?, ?, ?)',
-        [user.id, 'BALANCE_ADD', `Добавлено ${amount.toFixed(2)} ₽. Причина: ${reason}`, 'Discord Bot']
-      );
+        // Создаём запись о транзакции
+        const paymentId = `DISCORD_${interaction.user.id}_${Date.now()}`;
+        await connection.execute(
+          'INSERT INTO Payment (userId, amount, method, status, description, paymentId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
+          [user.id, amount, 'MANUAL', 'COMPLETED', reason, paymentId]
+        );
 
-      const embed = new EmbedBuilder()
-        .setColor('#00ff00')
-        .setTitle('✅ Баланс добавлен')
-        .addFields(
-          { name: 'Пользователь', value: user.name || user.email, inline: true },
-          { name: 'Email', value: user.email, inline: true },
-          { name: 'Старый баланс', value: `${oldBalance.toFixed(2)} ₽`, inline: true },
-          { name: 'Добавлено', value: `+${amount.toFixed(2)} ₽`, inline: true },
-          { name: 'Новый баланс', value: `${newBalance.toFixed(2)} ₽`, inline: true },
-          { name: 'Причина', value: reason, inline: false }
-        )
-        .setTimestamp()
-        .setFooter({ text: `Выполнил: ${interaction.user.tag}` });
+        // Логируем действие в AdminLog
+        await connection.execute(
+          'INSERT INTO AdminLog (userId, action, description, ipAddress, createdAt) VALUES (?, ?, ?, ?, NOW())',
+          [
+            user.id, 
+            'BALANCE_ADD', 
+            `Добавлено ${amount.toFixed(2)} ₽ через Discord Bot. Причина: ${reason}. Администратор: ${interaction.user.tag} (${interaction.user.id})`,
+            'Discord Bot'
+          ]
+        );
 
-      await interaction.editReply({ embeds: [embed] });
+        // Коммитим транзакцию
+        await connection.commit();
 
-      // Отправляем уведомление пользователю (если у него привязан Discord)
-      if (user.discordId) {
-        try {
-          const targetUser = await interaction.client.users.fetch(user.discordId);
-          const userEmbed = new EmbedBuilder()
-            .setColor('#00ff00')
-            .setTitle('💰 Баланс пополнен')
-            .setDescription(`Ваш баланс пополнен администратором на **${amount.toFixed(2)} ₽**`)
-            .addFields(
-              { name: 'Новый баланс', value: `${newBalance.toFixed(2)} ₽`, inline: true },
-              { name: 'Причина', value: reason, inline: false }
-            )
-            .setTimestamp();
+        const embed = new EmbedBuilder()
+          .setColor('#00ff00')
+          .setTitle('✅ Баланс успешно пополнен')
+          .setDescription(`Баланс пользователя успешно обновлён`)
+          .addFields(
+            { name: '👤 Пользователь', value: user.name || user.email, inline: true },
+            { name: '📧 Email', value: user.email, inline: true },
+            { name: '💰 Старый баланс', value: `${oldBalance.toFixed(2)} ₽`, inline: true },
+            { name: '💵 Добавлено', value: `**+${amount.toFixed(2)} ₽**`, inline: true },
+            { name: '💎 Новый баланс', value: `**${newBalance.toFixed(2)} ₽**`, inline: true },
+            { name: '📝 Причина', value: reason, inline: false }
+          )
+          .setTimestamp()
+          .setFooter({ text: `Выполнил: ${interaction.user.tag} • ID транзакции: ${paymentId}` });
 
-          await targetUser.send({ embeds: [userEmbed] });
-        } catch (error) {
-          console.log('Не удалось отправить уведомление пользователю:', error.message);
+        if (user.discordId) {
+          embed.addFields({ 
+            name: '🔗 Discord', 
+            value: `<@${user.discordId}>`, 
+            inline: true 
+          });
         }
+
+        await interaction.editReply({ embeds: [embed] });
+
+        // Отправляем уведомление пользователю (если у него привязан Discord)
+        if (user.discordId) {
+          try {
+            const targetUser = await interaction.client.users.fetch(user.discordId);
+            const userEmbed = new EmbedBuilder()
+              .setColor('#00ff00')
+              .setTitle('💰 Баланс пополнен')
+              .setDescription(`Ваш баланс пополнен администратором!`)
+              .addFields(
+                { name: '💵 Добавлено', value: `**+${amount.toFixed(2)} ₽**`, inline: true },
+                { name: '💎 Новый баланс', value: `**${newBalance.toFixed(2)} ₽**`, inline: true },
+                { name: '📝 Причина', value: reason, inline: false }
+              )
+              .setTimestamp()
+              .setFooter({ text: 'Fluxor Billing System' });
+
+            await targetUser.send({ embeds: [userEmbed] });
+            console.log(`✅ Отправлено уведомление пользователю ${user.email}`);
+          } catch (error) {
+            console.log('⚠️ Не удалось отправить уведомление пользователю:', error.message);
+          }
+        }
+
+      } catch (error) {
+        // Откатываем транзакцию в случае ошибки
+        await connection.rollback();
+        throw error;
       }
 
     } catch (error) {
@@ -135,7 +165,7 @@ export default {
       const embed = new EmbedBuilder()
         .setColor('#ff0000')
         .setTitle('❌ Ошибка')
-        .setDescription('Произошла ошибка при добавлении баланса.')
+        .setDescription(`Произошла ошибка при добавлении баланса.\n\`\`\`${error.message}\`\`\``)
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });

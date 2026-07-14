@@ -1,0 +1,283 @@
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { getDbConnection } from '../utils/database.js';
+
+// Хранилище сообщений статуса для каждого канала
+const statusMessages = new Map();
+
+// Эмодзи для статусов
+const STATUS_EMOJI = {
+  online: '🟢',
+  offline: '🔴',
+  degraded: '🟡'
+};
+
+// Эмодзи для типов сервисов
+const SERVICE_EMOJI = {
+  WEB: '🌐',
+  GAME: '🎮',
+  NODE: '🖥️',
+  DATABASE: '💾',
+  API: '🔌'
+};
+
+/**
+ * Получить статус всех сервисов из БД
+ */
+async function getServicesStatus() {
+  try {
+    const connection = await getDbConnection();
+    
+    const [statuses] = await connection.execute(`
+      SELECT 
+        ss.id,
+        ss.name,
+        ss.type,
+        ss.isOnline,
+        ss.responseTime,
+        ss.lastCheck,
+        ss.sortOrder,
+        pn.name as nodeName,
+        pn.locationName
+      FROM ServiceStatus ss
+      LEFT JOIN PterodactylNode pn ON ss.nodeId = pn.id
+      ORDER BY ss.sortOrder ASC, ss.createdAt ASC
+    `);
+    
+    return statuses;
+  } catch (error) {
+    console.error('Error fetching service status:', error);
+    return [];
+  }
+}
+
+/**
+ * Вычислить общий uptime
+ */
+async function calculateUptime(serviceId) {
+  try {
+    const connection = await getDbConnection();
+    
+    // Получаем статистику за последние 24 часа
+    const [history] = await connection.execute(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN isOnline = 1 THEN 1 ELSE 0 END) as online
+      FROM UptimeHistory
+      WHERE serviceId = ?
+      AND checkedAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    `, [serviceId]);
+    
+    if (history[0].total === 0) return 100;
+    
+    return ((history[0].online / history[0].total) * 100).toFixed(2);
+  } catch (error) {
+    return 'N/A';
+  }
+}
+
+/**
+ * Создать эмбед со статусом сервисов
+ */
+async function createStatusEmbed() {
+  const services = await getServicesStatus();
+  
+  if (!services || services.length === 0) {
+    const embed = new EmbedBuilder()
+      .setColor('#ff0000')
+      .setTitle('⚠️ Статус сервисов')
+      .setDescription('Нет данных о сервисах. Инициализируйте статусы в админ панели.')
+      .setTimestamp();
+    return embed;
+  }
+  
+  // Группируем сервисы по типам
+  const servicesByType = {};
+  for (const service of services) {
+    if (!servicesByType[service.type]) {
+      servicesByType[service.type] = [];
+    }
+    servicesByType[service.type].push(service);
+  }
+  
+  // Подсчитываем общую статистику
+  const totalServices = services.length;
+  const onlineServices = services.filter(s => s.isOnline).length;
+  const offlineServices = totalServices - onlineServices;
+  
+  // Определяем общий статус
+  let overallStatus = 'online';
+  let overallColor = '#00ff00'; // Зеленый
+  
+  if (offlineServices > 0) {
+    if (offlineServices === totalServices) {
+      overallStatus = 'offline';
+      overallColor = '#ff0000'; // Красный
+    } else {
+      overallStatus = 'degraded';
+      overallColor = '#ffaa00'; // Оранжевый
+    }
+  }
+  
+  const statusText = {
+    online: '✅ Все системы работают нормально',
+    degraded: '⚠️ Некоторые системы недоступны',
+    offline: '🔴 Все системы недоступны'
+  };
+  
+  const embed = new EmbedBuilder()
+    .setColor(overallColor)
+    .setTitle('📊 Статус сервисов Fluxor')
+    .setDescription(statusText[overallStatus])
+    .addFields({
+      name: '📈 Общая статистика',
+      value: `🟢 Онлайн: **${onlineServices}** | 🔴 Оффлайн: **${offlineServices}** | 📊 Всего: **${totalServices}**`,
+      inline: false
+    });
+  
+  // Добавляем информацию о каждом типе сервиса
+  for (const [type, typeServices] of Object.entries(servicesByType)) {
+    const emoji = SERVICE_EMOJI[type] || '🔧';
+    const serviceLines = [];
+    
+    for (const service of typeServices) {
+      const statusEmoji = service.isOnline ? STATUS_EMOJI.online : STATUS_EMOJI.offline;
+      const responseTime = service.responseTime ? `${service.responseTime}ms` : 'N/A';
+      const uptime = await calculateUptime(service.id);
+      
+      let serviceName = service.name;
+      if (service.nodeName) {
+        serviceName += ` (${service.nodeName})`;
+      }
+      
+      serviceLines.push(
+        `${statusEmoji} **${serviceName}**\n` +
+        `└ Время ответа: \`${responseTime}\` | Uptime: \`${uptime}%\``
+      );
+    }
+    
+    if (serviceLines.length > 0) {
+      embed.addFields({
+        name: `${emoji} ${type}`,
+        value: serviceLines.join('\n\n'),
+        inline: false
+      });
+    }
+  }
+  
+  // Добавляем время последнего обновления
+  const lastCheck = services[0]?.lastCheck;
+  if (lastCheck) {
+    const timestamp = Math.floor(new Date(lastCheck).getTime() / 1000);
+    embed.setFooter({ 
+      text: `Обновляется каждые 3 минуты • Последняя проверка` 
+    });
+    embed.setTimestamp(new Date(lastCheck));
+  } else {
+    embed.setFooter({ text: 'Обновляется каждые 3 минуты' });
+    embed.setTimestamp();
+  }
+  
+  return embed;
+}
+
+/**
+ * Обновить сообщение со статусом
+ */
+async function updateStatusMessage(message) {
+  try {
+    const embed = await createStatusEmbed();
+    await message.edit({ embeds: [embed] });
+  } catch (error) {
+    console.error('Error updating status message:', error);
+  }
+}
+
+/**
+ * Запустить автообновление статуса
+ */
+function startAutoUpdate(message) {
+  // Обновляем каждые 3 минуты (180000 мс)
+  const interval = setInterval(async () => {
+    try {
+      await updateStatusMessage(message);
+    } catch (error) {
+      console.error('Error in auto-update:', error);
+      // Если сообщение было удалено, останавливаем обновление
+      clearInterval(interval);
+      statusMessages.delete(message.channelId);
+    }
+  }, 180000); // 3 минуты
+  
+  return interval;
+}
+
+export default {
+  data: new SlashCommandBuilder()
+    .setName('status')
+    .setDescription('Показать статус всех сервисов с автообновлением'),
+  
+  async execute(interaction) {
+    await interaction.deferReply();
+
+    try {
+      const embed = await createStatusEmbed();
+      
+      const row = new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('refresh_status')
+            .setLabel('🔄 Обновить')
+            .setStyle(ButtonStyle.Primary),
+          new ButtonBuilder()
+            .setLabel('📊 Панель администратора')
+            .setStyle(ButtonStyle.Link)
+            .setURL(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/nodes-status`)
+        );
+      
+      const message = await interaction.editReply({ 
+        embeds: [embed],
+        components: [row]
+      });
+      
+      // Сохраняем сообщение для автообновления
+      const channelId = interaction.channelId;
+      
+      // Останавливаем предыдущее обновление, если было
+      if (statusMessages.has(channelId)) {
+        const oldData = statusMessages.get(channelId);
+        clearInterval(oldData.interval);
+      }
+      
+      // Запускаем новое автообновление
+      const interval = startAutoUpdate(message);
+      statusMessages.set(channelId, { message, interval });
+      
+      console.log(`✅ Status message started with auto-update in channel ${channelId}`);
+      
+    } catch (error) {
+      console.error('Error executing status command:', error);
+
+      const embed = new EmbedBuilder()
+        .setColor('#ff0000')
+        .setTitle('❌ Ошибка')
+        .setDescription('Произошла ошибка при получении статуса сервисов.')
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+    }
+  },
+  
+  // Обработчик для кнопки обновления
+  async handleButton(interaction) {
+    if (interaction.customId === 'refresh_status') {
+      await interaction.deferUpdate();
+      
+      try {
+        const embed = await createStatusEmbed();
+        await interaction.editReply({ embeds: [embed] });
+      } catch (error) {
+        console.error('Error refreshing status:', error);
+      }
+    }
+  }
+};
