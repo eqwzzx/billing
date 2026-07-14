@@ -1,0 +1,57 @@
+# ========================================
+# ЗАПУСК DISCORD БОТА НА VDS
+# Копируйте команды по порядку
+# ========================================
+
+# 1. Подключитесь к VDS
+ssh root@77.91.100.68
+
+# 2. Перейдите в папку бота
+cd /var/www/billing/discord-bot
+
+# 3. Установите зависимости
+npm install
+
+# 4. Создайте/проверьте .env файл
+nano .env
+
+# Вставьте в .env:
+# -----------------------------------
+DISCORD_TOKEN="MTUyNTc3MzI3NjY0MTQ5NzIzMA.G4ACSu.MkwSznJVDwgEeWmq8Ok1th93gq441wK4NfSiF0"
+DISCORD_CLIENT_ID="1525773276641497230"
+DISCORD_GUILD_ID="1525774593355419669"
+DISCORD_OAUTH_CLIENT_SECRET="y8mpn4Gm-wx2-cgaR-oATxrTeI3Z9GdM"
+DISCORD_VERIFIED_ROLE_ID="1525774705955573760"
+DATABASE_URL="mysql://fluxor:YOUR_PASSWORD@localhost:3306/fluxor"
+BOT_PREFIX="!"
+ADMIN_DISCORD_IDS="YOUR_DISCORD_ID"
+NEXT_PUBLIC_APP_URL="http://77.91.100.68:3000"
+# -----------------------------------
+# Замените YOUR_PASSWORD на пароль от БД
+# Замените YOUR_DISCORD_ID на ваш Discord ID
+# Сохраните: Ctrl+O, Enter, Ctrl+X
+
+# 5. Зарегистрируйте команды Discord
+node deploy-commands.js
+
+# 6. Запустите бота через PM2
+pm2 start index.js --name fluxor-bot
+
+# 7. Проверьте статус
+pm2 status
+
+# 8. Проверьте логи
+pm2 logs fluxor-bot --lines 50
+
+# 9. Сохраните конфигурацию PM2
+pm2 save
+
+# ========================================
+# ГОТОВО! Бот должен быть онлайн
+# ========================================
+
+# Полезные команды:
+# pm2 logs fluxor-bot          - логи бота
+# pm2 restart fluxor-bot       - перезапуск
+# pm2 stop fluxor-bot          - остановка
+# pm2 monit                    - мониторинг

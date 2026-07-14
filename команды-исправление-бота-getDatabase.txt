@@ -1,0 +1,99 @@
+# ========================================
+# ИСПРАВЛЕНИЕ ОШИБКИ getDatabase
+# ========================================
+
+# Проблема: The requested module './database.js' does not provide an export named 'getDatabase'
+
+# РЕШЕНИЕ 1: Автоматический (PowerShell на Windows)
+# ========================================
+cd C:\Users\Babur\Desktop\Avelon-Web-main
+.\Обновить-Бота-Срочно.ps1
+
+
+# РЕШЕНИЕ 2: Ручное копирование
+# ========================================
+
+# На Windows (PowerShell):
+cd C:\Users\Babur\Desktop\Avelon-Web-main\discord-bot
+scp utils/database.js root@77.91.100.68:/var/www/billing/discord-bot/utils/
+scp package.json root@77.91.100.68:/var/www/billing/discord-bot/
+
+# На VDS:
+ssh root@77.91.100.68
+
+cd /var/www/billing/discord-bot
+
+# Установить @prisma/client
+npm install @prisma/client
+
+# Сгенерировать Prisma Client
+cd /var/www/billing
+npx prisma generate
+
+# Вернуться в папку бота
+cd discord-bot
+
+# Зарегистрировать команды
+node deploy-commands.js
+
+# Перезапустить бота
+pm2 restart fluxor-bot
+
+# Проверить логи
+pm2 logs fluxor-bot --lines 50
+
+
+# РЕШЕНИЕ 3: Ручное редактирование на VDS
+# ========================================
+
+ssh root@77.91.100.68
+
+# Открыть файл database.js
+nano /var/www/billing/discord-bot/utils/database.js
+
+# Добавить в начало файла (после других импортов):
+# import { PrismaClient } from '@prisma/client';
+
+# Добавить новую переменную:
+# let prisma;
+
+# Добавить новую функцию перед closeDbConnection:
+# export async function getDatabase() {
+#   if (!prisma) {
+#     prisma = new PrismaClient();
+#     console.log('✅ Prisma client initialized');
+#   }
+#   return prisma;
+# }
+
+# Обновить функцию closeDbConnection (добавить в конец):
+#   if (prisma) {
+#     await prisma.$disconnect();
+#     prisma = null;
+#     console.log('✅ Prisma client disconnected');
+#   }
+
+# Сохранить: Ctrl+O, Enter, Ctrl+X
+
+# Установить Prisma
+cd /var/www/billing/discord-bot
+npm install @prisma/client
+
+cd /var/www/billing
+npx prisma generate
+
+cd discord-bot
+pm2 restart fluxor-bot
+pm2 logs fluxor-bot
+
+
+# ПРОВЕРКА
+# ========================================
+
+# Логи должны показать:
+# ✅ Prisma client initialized
+# ✅ Подключен к базе данных MySQL
+# ✅ Logged in as botiks#0793
+# ✅ Webhook сервер запущен на порту 3001
+
+# Без ошибок "does not provide an export named 'getDatabase'"
