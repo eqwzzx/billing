@@ -225,3 +225,29 @@ export async function sendAppealNotification(appealId: string) {
     user: appeal.user
   });
 }
+
+/**
+ * Уведомление о пополнении баланса (alias для sendBalanceNotification)
+ */
+export async function notifyBalanceDeposit(data: {
+  userId: string;
+  amount: number;
+  newBalance: number;
+  description: string;
+  method?: string;
+}) {
+  return await sendBalanceNotification({
+    userId: data.userId,
+    amount: data.amount,
+    newBalance: data.newBalance,
+    description: data.description,
+    isAddition: true
+  });
+}
+
+/**
+ * Уведомление о регистрации пользователя (alias для sendUserNotification)
+ */
+export async function notifyUserRegistered(userId: string) {
+  return await sendUserNotification(userId, 'REGISTER');
+}

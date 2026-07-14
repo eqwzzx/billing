@@ -114,12 +114,19 @@ export async function POST(request: NextRequest) {
       })
 
       // Отправляем уведомление в Discord бота
-      const completeTransaction = await prisma.transaction.findFirst({
-        where: { externalId: id, status: "COMPLETED" },
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { balance: true }
       })
       
-      if (completeTransaction) {
-        await notifyBalanceDeposit(completeTransaction)
+      if (updatedUser) {
+        await notifyBalanceDeposit({
+          userId,
+          amount: totalAmount,
+          newBalance: updatedUser.balance,
+          description: `Пополнение через CrystalPay${bonus > 0 ? ` (бонус: +${bonus} ₽)` : ''}`,
+          method: 'CRYSTALPAY'
+        })
       }
 
       return NextResponse.json({ success: true })

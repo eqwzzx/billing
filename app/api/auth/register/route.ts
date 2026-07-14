@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       await adminLogger.userRegister(user.id, normalizedEmail, clientIp, userAgent)
 
       // Отправляем уведомление в Discord
-      await notifyUserRegistered(user)
+      await notifyUserRegistered(user.id)
 
       return NextResponse.json({ 
         success: true, 
