@@ -50,3 +50,15 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+
+# Папка
+Avelon-Web-main/
+
+# Все TXT
+*.txt
+
+# Все Markdown
+*.md
+
+# Все PowerShell-скрипты
+*.ps1
