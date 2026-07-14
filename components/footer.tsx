@@ -86,6 +86,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/offer" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                  Публичная оферта
+                </Link>
+              </li>
+              <li>
                 <Link href="/privacy" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Конфиденциальность
                 </Link>
@@ -95,6 +100,16 @@ export function Footer() {
                   Возврат средств
                 </Link>
               </li>
+              <li>
+                <Link href="/sla" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                  SLA
+                </Link>
+              </li>
+              <li>
+                <Link href="/liability" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                  Ответственность
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -102,7 +117,7 @@ export function Footer() {
             <h4 className="mb-3 sm:mb-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">Связаться</h4>
             <div className="space-y-2 sm:space-y-3">
               <a 
-                href="mailto:support@yourdomain.ru" 
+                href="mailto:support@fluxor.space" 
                 className="flex items-center gap-2 sm:gap-3 rounded-lg border border-border/50 bg-card/50 p-2 sm:p-3 transition-all duration-200 hover:border-primary/30 hover:scale-[1.02]"
               >
                 <div className="flex size-7 sm:size-8 items-center justify-center rounded-md sm:rounded-lg bg-primary/10">
@@ -110,11 +125,11 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Email</p>
-                  <p className="text-xs sm:text-sm text-foreground">support@yourdomain.ru</p>
+                  <p className="text-xs sm:text-sm text-foreground">support@fluxor.space</p>
                 </div>
               </a>
               <a 
-                href="mailto:abuse@yourdomain.ru" 
+                href="mailto:abuse@fluxor.space" 
                 className="flex items-center gap-2 sm:gap-3 rounded-lg border border-border/50 bg-card/50 p-2 sm:p-3 transition-all duration-200 hover:border-primary/30 hover:scale-[1.02]"
               >
                 <div className="flex size-7 sm:size-8 items-center justify-center rounded-md sm:rounded-lg bg-red-500/10">
@@ -122,7 +137,7 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Abuse</p>
-                  <p className="text-xs sm:text-sm text-foreground">abuse@yourdomain.ru</p>
+                  <p className="text-xs sm:text-sm text-foreground">abuse@fluxor.space</p>
                 </div>
               </a>
               <a 
