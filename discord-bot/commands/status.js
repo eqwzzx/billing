@@ -3,6 +3,7 @@ import { getDbConnection } from '../utils/database.js';
 
 // Хранилище сообщений статуса для каждого канала
 const statusMessages = new Map();
+const updateIntervals = new Map();
 
 // Эмодзи для статусов
 const STATUS_EMOJI = {
@@ -195,19 +196,37 @@ async function updateStatusMessage(message) {
 /**
  * Запустить автообновление статуса
  */
-function startAutoUpdate(message) {
+function startAutoUpdate(message, channelId) {
+  // Останавливаем предыдущее обновление, если было
+  if (updateIntervals.has(channelId)) {
+    clearInterval(updateIntervals.get(channelId));
+  }
+  
   // Обновляем каждые 3 минуты (180000 мс)
   const interval = setInterval(async () => {
     try {
+      // Проверяем что сообщение еще существует
+      await message.fetch().catch(() => {
+        // Сообщение удалено, останавливаем обновление
+        clearInterval(interval);
+        updateIntervals.delete(channelId);
+        statusMessages.delete(channelId);
+        return;
+      });
+      
       await updateStatusMessage(message);
+      console.log(`✅ Status updated for channel ${channelId}`);
     } catch (error) {
       console.error('Error in auto-update:', error);
-      // Если сообщение было удалено, останавливаем обновление
+      // Если ошибка, останавливаем обновление
       clearInterval(interval);
-      statusMessages.delete(message.channelId);
+      updateIntervals.delete(channelId);
+      statusMessages.delete(channelId);
     }
   }, 180000); // 3 минуты
   
+  updateIntervals.set(channelId, interval);
+  console.log(`✅ Auto-update started for channel ${channelId}`);
   return interval;
 }
 
@@ -227,11 +246,7 @@ export default {
           new ButtonBuilder()
             .setCustomId('refresh_status')
             .setLabel('🔄 Обновить')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setLabel('📊 Панель администратора')
-            .setStyle(ButtonStyle.Link)
-            .setURL(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/nodes-status`)
+            .setStyle(ButtonStyle.Primary)
         );
       
       const message = await interaction.editReply({ 
@@ -243,14 +258,14 @@ export default {
       const channelId = interaction.channelId;
       
       // Останавливаем предыдущее обновление, если было
-      if (statusMessages.has(channelId)) {
-        const oldData = statusMessages.get(channelId);
-        clearInterval(oldData.interval);
+      if (updateIntervals.has(channelId)) {
+        clearInterval(updateIntervals.get(channelId));
+        updateIntervals.delete(channelId);
       }
       
       // Запускаем новое автообновление
-      const interval = startAutoUpdate(message);
-      statusMessages.set(channelId, { message, interval });
+      startAutoUpdate(message, channelId);
+      statusMessages.set(channelId, message);
       
       console.log(`✅ Status message started with auto-update in channel ${channelId}`);
       

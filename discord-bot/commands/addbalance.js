@@ -87,8 +87,8 @@ export default {
         // Создаём запись о транзакции
         const paymentId = `DISCORD_${interaction.user.id}_${Date.now()}`;
         await connection.execute(
-          'INSERT INTO Payment (userId, amount, method, status, description, paymentId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
-          [user.id, amount, 'MANUAL', 'COMPLETED', reason, paymentId]
+          'INSERT INTO Transaction (userId, amount, type, status, description, externalId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
+          [user.id, amount, 'DEPOSIT', 'COMPLETED', reason, paymentId]
         );
 
         // Логируем действие в AdminLog

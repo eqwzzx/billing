@@ -63,16 +63,16 @@ export default {
         `SELECT 
           COUNT(*) as total,
           COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed,
-          SUM(CASE WHEN status = 'COMPLETED' AND amount > 0 THEN amount ELSE 0 END) as totalDeposited,
-          SUM(CASE WHEN status = 'COMPLETED' AND amount < 0 THEN amount ELSE 0 END) as totalSpent
-        FROM Payment 
+          SUM(CASE WHEN status = 'COMPLETED' AND type = 'DEPOSIT' THEN amount ELSE 0 END) as totalDeposited,
+          SUM(CASE WHEN status = 'COMPLETED' AND type = 'PAYMENT' THEN amount ELSE 0 END) as totalSpent
+        FROM Transaction 
         WHERE userId = ?`,
         [user.id]
       );
 
       // Получаем последние транзакции
       const [transactions] = await connection.execute(
-        'SELECT amount, method, description, status, createdAt FROM Payment WHERE userId = ? ORDER BY createdAt DESC LIMIT 5',
+        'SELECT amount, type, description, status, createdAt FROM Transaction WHERE userId = ? ORDER BY createdAt DESC LIMIT 5',
         [user.id]
       );
 

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getDbConnection } from '../utils/database.js';
+import { getUser } from '../utils/api-client.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -10,18 +10,12 @@ export default {
     await interaction.deferReply({ ephemeral: true });
 
     try {
-      const connection = await getDbConnection();
       const discordId = interaction.user.id;
 
-      // Получаем пользователя через mysql2
-      const [rows] = await connection.execute(
-        'SELECT id, name, email, balance, emailVerified, createdAt FROM User WHERE discordId = ?',
-        [discordId]
-      );
+      // Получаем пользователя через API
+      const data = await getUser(discordId, 'discordId');
       
-      const user = rows[0];
-
-      if (!user) {
+      if (!data || !data.user) {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
           .setTitle('❌ Аккаунт не привязан')
@@ -43,28 +37,11 @@ export default {
         return;
       }
 
-      // Получаем статистику транзакций
-      const [transactionsStats] = await connection.execute(
-        `SELECT 
-          COUNT(*) as totalTransactions,
-          SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END) as totalDeposited,
-          MAX(createdAt) as lastTransaction
-        FROM Payment 
-        WHERE userId = ? AND amount > 0`,
-        [user.id]
-      );
-
-      // Получаем количество серверов
-      const [serversCount] = await connection.execute(
-        'SELECT COUNT(*) as total, SUM(CASE WHEN status IN ("ACTIVE", "INSTALLING", "STARTING") THEN 1 ELSE 0 END) as active FROM Server WHERE userId = ?',
-        [user.id]
-      );
-
-      const stats = transactionsStats[0];
-      const servers = serversCount[0];
+      const user = data.user;
+      const stats = data.stats;
       
       // Форматируем баланс
-      const balance = parseFloat(user.balance || 0);
+      const balance = user.balance;
       const balanceColor = balance > 100 ? '#00ff00' : balance > 10 ? '#ffaa00' : '#ff0000';
       
       const embed = new EmbedBuilder()
@@ -76,23 +53,14 @@ export default {
           { name: '📧 Email', value: user.email, inline: true },
           { name: '✅ Верификация', value: user.emailVerified ? '✅ Подтверждён' : '❌ Не подтверждён', inline: true },
           { name: '💵 Текущий баланс', value: `**${balance.toFixed(2)} ₽**`, inline: true },
-          { name: '📊 Всего пополнено', value: `${parseFloat(stats.totalDeposited || 0).toFixed(2)} ₽`, inline: true },
-          { name: '💳 Транзакций', value: `${stats.totalTransactions || 0}`, inline: true },
-          { name: '🎮 Активные серверы', value: `${servers.active || 0}`, inline: true },
-          { name: '📦 Всего серверов', value: `${servers.total || 0}`, inline: true },
+          { name: '📊 Всего транзакций', value: `${stats.transactions.total}`, inline: true },
+          { name: '💰 Сумма транзакций', value: `${stats.transactions.totalAmount.toFixed(2)} ₽`, inline: true },
+          { name: '🎮 Всего серверов', value: `${stats.servers.total}`, inline: true },
+          { name: '✅ Активных', value: `${stats.servers.byStatus.ACTIVE || 0}`, inline: true },
           { name: '📅 Регистрация', value: `<t:${Math.floor(new Date(user.createdAt).getTime() / 1000)}:R>`, inline: true }
         )
         .setThumbnail(interaction.user.displayAvatarURL())
         .setTimestamp();
-
-      // Добавляем информацию о последней транзакции
-      if (stats.lastTransaction) {
-        embed.addFields({
-          name: '💰 Последнее пополнение',
-          value: `<t:${Math.floor(new Date(stats.lastTransaction).getTime() / 1000)}:R>`,
-          inline: true
-        });
-      }
 
       embed.setFooter({ text: `ID: ${user.id} • Fluxor Billing` });
 
@@ -105,10 +73,6 @@ export default {
             .setURL(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/client`),
           new ButtonBuilder()
             .setLabel('🎮 Мои серверы')
-            .setStyle(ButtonStyle.Link)
-            .setURL(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/client`),
-          new ButtonBuilder()
-            .setLabel('📊 История транзакций')
             .setStyle(ButtonStyle.Link)
             .setURL(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/client`)
         );
