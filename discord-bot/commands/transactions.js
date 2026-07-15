@@ -14,7 +14,7 @@ export default {
       const discordId = interaction.user.id;
 
       const [users] = await db.query(
-        'SELECT id FROM users WHERE discordId = ?',
+        'SELECT id FROM Users WHERE discordId = ?',
         [discordId]
       );
 
@@ -41,7 +41,7 @@ export default {
         .setColor('#0099ff')
         .setTitle('💳 История транзакций')
         .setTimestamp()
-        .setFooter({ text: 'Avelon Billing System' });
+        .setFooter({ text: 'Fluxor Billing System' });
 
       if (transactions.length === 0) {
         embed.setDescription('У вас пока нет транзакций.');
