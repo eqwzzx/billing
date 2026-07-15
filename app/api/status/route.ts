@@ -129,7 +129,7 @@ async function runStatusChecks() {
           checkResult = await checkWebStatus(status.url)
         } else {
           checkResult = await checkWebStatus(
-            process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.ru"
+            process.env.NEXT_PUBLIC_APP_URL || "https://fluxor.solutions"
           )
         }
       } else if (status.type === "GAME") {

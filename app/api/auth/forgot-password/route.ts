@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    const resetUrl = `${process.env.NEXT_PUBLIC_URL || 'https://yourdomain.ru'}/reset-password?token=${token}`
+    const resetUrl = `${process.env.NEXT_PUBLIC_URL || 'https://fluxor.solutions'}/reset-password?token=${token}`
 
     await transporter.sendMail({
       from: smtp.from || smtp.user,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
                         © ${new Date().getFullYear()} Fluxor. Все права защищены.
                       </p>
                       <p style="margin: 8px 0 0; font-size: 11px; color: #404040;">
-                        <a href="https://yourdomain.ru" style="color: #666; text-decoration: none;">yourdomain.ru</a>
+                        <a href="https://fluxor.solutions" style="color: #666; text-decoration: none;">fluxor.solutions</a>
                       </p>
                     </td>
                   </tr>

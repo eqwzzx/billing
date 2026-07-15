@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
 }
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.ru"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fluxor.solutions"
 
 export async function POST(request: NextRequest) {
   try {

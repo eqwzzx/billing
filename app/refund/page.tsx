@@ -152,8 +152,8 @@ export default function RefundPage() {
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>По вопросам возврата денежных средств вы можете обратиться:</p>
                 <ul className="list-none space-y-2">
-                  <li>Служба поддержки: support@fluxor.space</li>
-                  <li>Юридические вопросы: legal@fluxor.space</li>
+                  <li>Служба поддержки: support@fluxor.solutions</li>
+                  <li>Юридические вопросы: legal@fluxor.solutions</li>
                 </ul>
                 <p className="mt-4">
                   Оплачивая услуги Fluxor Hosting Solutions, вы подтверждаете, что ознакомились с настоящей Политикой возврата средств и соглашаетесь с её условиями.

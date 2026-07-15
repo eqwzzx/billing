@@ -61,6 +61,15 @@ export function SettingsTab({
   } | null>(null)
   const [discordLoading, setDiscordLoading] = useState(true)
   const [showDiscordSuccess, setShowDiscordSuccess] = useState(false)
+  const [userName, setUserName] = useState(user.name || '')
+  const [savingName, setSavingName] = useState(false)
+  const [joinDiscordServer, setJoinDiscordServer] = useState(true)
+  const [showChangeEmail, setShowChangeEmail] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [emailCode, setEmailCode] = useState('')
+  const [emailChangeStep, setEmailChangeStep] = useState<1 | 2>(1)
+  const [changingEmail, setChangingEmail] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
 
   useEffect(() => {
     checkDiscordLink()
@@ -98,10 +107,6 @@ export function SettingsTab({
     }
   }
 
-  const handleDiscordLink = () => {
-    window.location.href = '/api/auth/discord?action=link'
-  }
-
   const handleDiscordUnlink = async () => {
     if (!confirm('Вы уверены что хотите отвязать Discord?')) return
 
@@ -135,6 +140,100 @@ export function SettingsTab({
   const handleVerificationSuccess = () => {
     // Перезагрузить страницу чтобы обновить статус
     window.location.reload()
+  }
+
+  const handleSaveName = async () => {
+    if (!userName.trim()) {
+      return
+    }
+
+    setSavingName(true)
+    try {
+      const res = await fetch('/api/user/name', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: userName }),
+      })
+      const data = await res.json()
+
+      if (res.ok) {
+        // Успешный toast покажется автоматически
+        window.location.reload() // Перезагрузим для обновления имени везде
+      } else {
+        alert(data.error || 'Ошибка сохранения имени')
+      }
+    } catch {
+      alert('Ошибка сети')
+    }
+    setSavingName(false)
+  }
+
+  const handleDiscordLink = () => {
+    // Сохраняем настройку в localStorage перед редиректом
+    localStorage.setItem('discord_join_server', joinDiscordServer ? 'true' : 'false')
+    // Передаем параметр через URL
+    const joinParam = joinDiscordServer ? '&join_server=true' : ''
+    window.location.href = `/api/auth/discord?action=link${joinParam}`
+  }
+
+  const handleRequestEmailChange = async () => {
+    if (!newEmail.trim()) return
+    
+    setChangingEmail(true)
+    setEmailError(null)
+    
+    try {
+      const res = await fetch('/api/user/email/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail }),
+      })
+      const data = await res.json()
+      
+      if (res.ok) {
+        setEmailChangeStep(2)
+        alert('Код подтверждения отправлен на новый email!')
+      } else {
+        setEmailError(data.error || 'Ошибка отправки кода')
+      }
+    } catch {
+      setEmailError('Ошибка сети')
+    }
+    setChangingEmail(false)
+  }
+
+  const handleConfirmEmailChange = async () => {
+    if (!emailCode.trim()) return
+    
+    setChangingEmail(true)
+    setEmailError(null)
+    
+    try {
+      const res = await fetch('/api/user/email/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: emailCode }),
+      })
+      const data = await res.json()
+      
+      if (res.ok) {
+        alert('Email успешно изменен!')
+        window.location.reload()
+      } else {
+        setEmailError(data.error || 'Неверный код')
+      }
+    } catch {
+      setEmailError('Ошибка сети')
+    }
+    setChangingEmail(false)
+  }
+
+  const resetEmailChange = () => {
+    setShowChangeEmail(false)
+    setNewEmail('')
+    setEmailCode('')
+    setEmailChangeStep(1)
+    setEmailError(null)
   }
   return (
     <div className="max-w-5xl mx-auto pb-8">
@@ -193,17 +292,108 @@ export function SettingsTab({
                   Отправить код подтверждения
                 </button>
               )}
+              
+              {/* Кнопка смены email */}
+              {!showChangeEmail ? (
+                <button
+                  onClick={() => setShowChangeEmail(true)}
+                  className="mt-2 flex items-center gap-2 text-xs text-primary hover:text-primary/80"
+                >
+                  <RefreshCw className="size-3.5" />
+                  Сменить email
+                </button>
+              ) : (
+                <div className="mt-3 p-3 rounded-xl bg-muted/20 border border-border/30 space-y-3">
+                  {emailChangeStep === 1 ? (
+                    <>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Новый Email</label>
+                        <input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          placeholder="new@example.com"
+                          className="w-full mt-1 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+                        />
+                      </div>
+                      {emailError && (
+                        <p className="text-xs text-red-500">{emailError}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleRequestEmailChange}
+                          disabled={changingEmail || !newEmail.trim()}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          {changingEmail && <Loader2 className="size-3.5 animate-spin" />}
+                          Отправить код
+                        </button>
+                        <button
+                          onClick={resetEmailChange}
+                          disabled={changingEmail}
+                          className="rounded-lg border border-border/50 px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/20 disabled:opacity-50"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Код отправлен на <strong className="text-foreground">{newEmail}</strong>
+                      </p>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Код из письма</label>
+                        <input
+                          type="text"
+                          value={emailCode}
+                          onChange={(e) => setEmailCode(e.target.value.toUpperCase())}
+                          placeholder="ABC123"
+                          maxLength={6}
+                          className="w-full mt-1 rounded-lg border border-border/50 bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 font-mono"
+                        />
+                      </div>
+                      {emailError && (
+                        <p className="text-xs text-red-500">{emailError}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleConfirmEmailChange}
+                          disabled={changingEmail || !emailCode.trim()}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                        >
+                          {changingEmail && <Loader2 className="size-3.5 animate-spin" />}
+                          Подтвердить
+                        </button>
+                        <button
+                          onClick={resetEmailChange}
+                          disabled={changingEmail}
+                          className="rounded-lg border border-border/50 px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/20 disabled:opacity-50"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Имя</label>
               <input 
                 type="text" 
-                defaultValue={user.name || ''}
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
                 placeholder="Ваше имя"
                 className="w-full mt-1.5 rounded-xl border border-border/50 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-200" 
               />
             </div>
-            <button className="w-full mt-2 rounded-xl bg-foreground py-2.5 text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200">
+            <button 
+              onClick={handleSaveName}
+              disabled={savingName || userName === (user.name || '')}
+              className="w-full mt-2 rounded-xl bg-foreground py-2.5 text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {savingName && <Loader2 className="size-4 animate-spin" />}
               Сохранить
             </button>
           </div>
@@ -317,6 +507,31 @@ export function SettingsTab({
                     Привяжите Discord для управления через бота
                   </p>
                 </div>
+                
+                {/* Переключатель присоединения к Discord серверу */}
+                <div className="p-4 rounded-xl bg-muted/20 border border-border/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">Вступить в Discord сервер</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Автоматически присоединиться к серверу поддержки
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setJoinDiscordServer(!joinDiscordServer)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        joinDiscordServer ? 'bg-[#5865F2]' : 'bg-muted'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          joinDiscordServer ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   onClick={handleDiscordLink}
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#5865F2] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#4752C4] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
@@ -375,7 +590,7 @@ export function SettingsTab({
                     <p className="text-sm text-muted-foreground truncate">{pteroAccount.email}</p>
                   </div>
                   <a
-                    href={process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.yourdomain.ru'}
+                    href={process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"

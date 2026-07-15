@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
     }
 
+    // Проверка верификации: Discord ИЛИ email
+    if (!user.discordId && !user.emailVerified) {
+      return NextResponse.json({ 
+        error: 'Для продления сервера необходимо подтвердить email или привязать Discord. Проверьте почту или обратитесь в поддержку.',
+        needsVerification: true
+      }, { status: 403 })
+    }
+
     const body = await request.json()
     const { serverId } = body
 

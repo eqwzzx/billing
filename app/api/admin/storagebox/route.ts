@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
               <li><strong>Дата истечения:</strong> ${expiresAt ? expiresAt.toLocaleDateString('ru-RU') : 'Не указана'}</li>
             </ul>
             
-            <p>Вы можете управлять StorageBox в личном кабинете: <a href="${process.env.NEXT_PUBLIC_URL || 'https://yourdomain.ru'}/client/servers">Перейти в панель</a></p>
+            <p>Вы можете управлять StorageBox в личном кабинете: <a href="${process.env.NEXT_PUBLIC_URL || 'https://fluxor.solutions'}/client/servers">Перейти в панель</a></p>
             
             <p>С уважением,<br>Команда Fluxor</p>
           `,

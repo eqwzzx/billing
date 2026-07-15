@@ -7,9 +7,9 @@ import Image from "next/image"
 import { Construction, ExternalLink, Sun, Moon, LayoutDashboard, Globe, Server } from "lucide-react"
 
 const links = [
-  { name: "Панель управления", url: "https://control.yourdomain.ru", icon: LayoutDashboard },
-  { name: "Главный сайт", url: "https://yourdomain.ru", icon: Globe },
-  { name: "VM Panel", url: "https://vm.yourdomain.ru", icon: Server },
+  { name: "Панель управления", url: "https://control.fluxor.solutions", icon: LayoutDashboard },
+  { name: "Главный сайт", url: "https://fluxor.solutions", icon: Globe },
+  { name: "VM Panel", url: "https://vm.fluxor.solutions", icon: Server },
 ]
 
 const colors = [

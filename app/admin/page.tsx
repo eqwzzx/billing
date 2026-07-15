@@ -2544,7 +2544,7 @@ export default function AdminPage() {
                       type="text"
                       value={smtpSettings.from}
                       onChange={(e) => setSmtpSettings({ ...smtpSettings, from: e.target.value })}
-                      placeholder="Fluxor <noreply@yourdomain.ru>"
+                      placeholder="Fluxor <noreply@fluxor.solutions>"
                       className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>

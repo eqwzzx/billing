@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         if (status.url) {
           checkResult = await checkWebStatus(status.url)
         } else {
-          checkResult = await checkWebStatus(process.env.NEXT_PUBLIC_APP_URL || 'https://yourdomain.ru')
+          checkResult = await checkWebStatus(process.env.NEXT_PUBLIC_APP_URL || 'https://fluxor.solutions')
         }
       } else if (status.type === 'GAME') {
         checkResult = await checkPterodactylStatus()

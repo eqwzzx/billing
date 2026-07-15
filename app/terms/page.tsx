@@ -179,9 +179,9 @@ export default function TermsPage() {
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>По всем вопросам, связанным с использованием услуг Fluxor, можно обратиться:</p>
                 <ul className="list-none space-y-2">
-                  <li>Служба поддержки: support@fluxor.space</li>
-                  <li>Сообщения о нарушениях (Abuse): abuse@fluxor.space</li>
-                  <li>Юридические вопросы: legal@fluxor.space</li>
+                  <li>Служба поддержки: support@fluxor.solutions</li>
+                  <li>Сообщения о нарушениях (Abuse): abuse@fluxor.solutions</li>
+                  <li>Юридические вопросы: legal@fluxor.solutions</li>
                 </ul>
                 <p className="mt-4">Используя услуги Fluxor Hosting Solutions, вы подтверждаете своё согласие с настоящим Пользовательским соглашением.</p>
               </div>

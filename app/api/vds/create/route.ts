@@ -197,6 +197,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // Проверка верификации: Discord ИЛИ email
+    if (!dbUser.discordId && !dbUser.emailVerified) {
+      return NextResponse.json({ 
+        error: 'Для создания VDS необходимо подтвердить email или привязать Discord. Проверьте почту или обратитесь в поддержку.',
+        needsVerification: true
+      }, { status: 403 })
+    }
+
     if (dbUser.balance < plan.price) {
       return NextResponse.json({ error: "Insufficient balance" }, { status: 400 })
     }

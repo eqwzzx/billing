@@ -42,11 +42,13 @@ export async function GET(request: NextRequest) {
 
   // Декодируем state
   let action = 'login';
+  let joinServer = false;
   try {
     if (state) {
       const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
       action = decoded.action || 'login';
-      console.log('[Discord OAuth] Decoded action:', action);
+      joinServer = decoded.joinServer || false;
+      console.log('[Discord OAuth] Decoded state:', { action, joinServer });
     }
   } catch (e) {
     console.error('[Discord OAuth] Failed to decode state:', e);
@@ -104,7 +106,7 @@ export async function GET(request: NextRequest) {
     if (action === 'link') {
       console.log('[Discord OAuth] Processing link action...');
       // Привязка Discord к существующему аккаунту
-      return await handleDiscordLink(request, discordUser);
+      return await handleDiscordLink(request, discordUser, accessToken, joinServer);
     } else {
       console.log('[Discord OAuth] Processing login action...');
       // Авторизация/регистрация через Discord
@@ -202,7 +204,7 @@ async function handleDiscordLogin(request: NextRequest, discordUser: DiscordUser
   return NextResponse.redirect(new URL('/client', baseUrl));
 }
 
-async function handleDiscordLink(request: NextRequest, discordUser: DiscordUser) {
+async function handleDiscordLink(request: NextRequest, discordUser: DiscordUser, accessToken: string, joinServer: boolean) {
   console.log('[Discord Link] Starting link process for user:', discordUser.id);
   
   // Используем NEXT_PUBLIC_APP_URL вместо request.url для правильного редиректа
@@ -265,6 +267,37 @@ async function handleDiscordLink(request: NextRequest, discordUser: DiscordUser)
     } catch (roleError) {
       console.error('[Discord Link] Failed to give Discord role:', roleError);
       // Не прерываем процесс, если роль не удалось выдать
+    }
+
+    // Проверяем настройку присоединения к серверу
+    if (joinServer && process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID) {
+      console.log('[Discord Link] Attempting to add user to Discord server...');
+      try {
+        // Добавляем пользователя на Discord сервер через Bot API
+        const addMemberResponse = await fetch(
+          `https://discord.com/api/v10/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUser.id}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              access_token: accessToken, // OAuth access token нужен здесь
+            })
+          }
+        );
+
+        if (addMemberResponse.ok) {
+          console.log('[Discord Link] User added to Discord server successfully');
+        } else {
+          const errorText = await addMemberResponse.text();
+          console.error('[Discord Link] Failed to add user to server:', addMemberResponse.status, errorText);
+        }
+      } catch (joinError) {
+        console.error('[Discord Link] Error adding user to Discord server:', joinError);
+        // Не прерываем процесс
+      }
     }
 
     console.log('[Discord Link] Redirecting to settings page');

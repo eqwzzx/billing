@@ -309,9 +309,9 @@ const documentContents: Record<string, { title: string; content: React.ReactNode
           <h3 className="font-bold mb-2">13. КОНТАКТНАЯ ИНФОРМАЦИЯ</h3>
 
           <ul className="list-disc pl-6 space-y-1">
-            <li>Служба поддержки: support@fluxor.space</li>
-            <li>Сообщения о нарушениях (Abuse): abuse@fluxor.space</li>
-            <li>Юридические вопросы: legal@fluxor.space</li>
+            <li>Служба поддержки: support@fluxor.solutions</li>
+            <li>Сообщения о нарушениях (Abuse): abuse@fluxor.solutions</li>
+            <li>Юридические вопросы: legal@fluxor.solutions</li>
           </ul>
         </div>
 
@@ -570,9 +570,9 @@ const documentContents: Record<string, { title: string; content: React.ReactNode
            </p>
  
            <ul className="list-disc pl-6 mt-2 space-y-1">
-             <li>Служба поддержки: support@fluxor.space</li>
-             <li>Сообщения о нарушениях (Abuse): abuse@fluxor.space</li>
-             <li>Юридические вопросы: legal@fluxor.space</li>
+             <li>Служба поддержки: support@fluxor.solutions</li>
+             <li>Сообщения о нарушениях (Abuse): abuse@fluxor.solutions</li>
+             <li>Юридические вопросы: legal@fluxor.solutions</li>
            </ul>
 
            <p className="mt-4">
@@ -982,9 +982,9 @@ privacy: {
           </p>
 
           <ul className="list-disc pl-6 mt-2 space-y-1">
-            <li>Служба поддержки: support@fluxor.space</li>
-            <li>Сообщения о нарушениях (Abuse): abuse@fluxor.space</li>
-            <li>Юридические вопросы: legal@fluxor.space</li>
+            <li>Служба поддержки: support@fluxor.solutions</li>
+            <li>Сообщения о нарушениях (Abuse): abuse@fluxor.solutions</li>
+            <li>Юридические вопросы: legal@fluxor.solutions</li>
           </ul>
 
           <p className="mt-4">
@@ -1201,8 +1201,8 @@ privacy: {
           </p>
 
           <ul className="list-disc pl-6 mt-2 space-y-1">
-            <li>Служба поддержки: support@fluxor.space</li>
-            <li>Юридические вопросы: legal@fluxor.space</li>
+            <li>Служба поддержки: support@fluxor.solutions</li>
+            <li>Юридические вопросы: legal@fluxor.solutions</li>
           </ul>
 
           <p className="mt-4">
@@ -1438,8 +1438,8 @@ sla: {
           <h3 className="font-bold mb-2">11. КОНТАКТНАЯ ИНФОРМАЦИЯ</h3>
 
           <ul className="list-disc pl-6 space-y-1">
-            <li>Служба поддержки: support@fluxor.space</li>
-            <li>Юридические вопросы: legal@fluxor.space</li>
+            <li>Служба поддержки: support@fluxor.solutions</li>
+            <li>Юридические вопросы: legal@fluxor.solutions</li>
           </ul>
 
           <p className="mt-4">
@@ -1684,8 +1684,8 @@ liability: {
           <h3 className="font-bold mb-2">12. КОНТАКТНАЯ ИНФОРМАЦИЯ</h3>
 
           <ul className="list-disc pl-6 space-y-1">
-            <li>Служба поддержки: support@fluxor.space</li>
-            <li>Юридические вопросы: legal@fluxor.space</li>
+            <li>Служба поддержки: support@fluxor.solutions</li>
+            <li>Юридические вопросы: legal@fluxor.solutions</li>
           </ul>
 
           <p className="mt-4">
@@ -1815,14 +1815,14 @@ export default function DocsPage() {
                 <Building2 className="size-6 text-primary" />
               </div>
               <div>
-                <h2 className="font-heading text-xl font-bold text-foreground">fluxor.space</h2>
+                <h2 className="font-heading text-xl font-bold text-foreground">fluxor.solutions</h2>
                 <p className="text-sm text-muted-foreground">Хостинг игровых серверов</p>
               </div>
             </div>
             <div className="relative">
              <div className="space-y-2 text-sm text-muted-foreground">
-             <p><span className="text-foreground font-medium">Email:</span> support@fluxor.space</p>
-             <p><span className="text-foreground font-medium">Abuse:</span> abuse@fluxor.space</p>
+             <p><span className="text-foreground font-medium">Email:</span> support@fluxor.solutions</p>
+             <p><span className="text-foreground font-medium">Abuse:</span> abuse@fluxor.solutions</p>
            </div>
 
            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

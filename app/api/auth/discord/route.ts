@@ -4,8 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const action = searchParams.get('action') || 'login'; // 'login' или 'link'
+  const joinServer = searchParams.get('join_server') === 'true';
   
   console.log('[Discord OAuth Init] Action:', action);
+  console.log('[Discord OAuth Init] Join Server:', joinServer);
   console.log('[Discord OAuth Init] Request URL:', request.url);
   
   const clientId = process.env.DISCORD_OAUTH_CLIENT_ID;
@@ -22,15 +24,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Сохраняем action в state для callback
-  const state = Buffer.from(JSON.stringify({ action })).toString('base64');
+  // Сохраняем action и joinServer в state для callback
+  const state = Buffer.from(JSON.stringify({ action, joinServer })).toString('base64');
   console.log('[Discord OAuth Init] Generated state:', state);
+
+  // Добавляем guilds.join scope если нужно присоединиться к серверу
+  const scopes = joinServer ? 'identify email guilds.join' : 'identify email';
 
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'identify email',
+    scope: scopes,
     state: state,
   });
 

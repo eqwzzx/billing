@@ -1056,7 +1056,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
         <div className="flex items-center gap-2 shrink-0">
           {server.pterodactylIdentifier ? (
             <a 
-              href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.yourdomain.ru'}/server/${server.pterodactylIdentifier}`}
+              href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions'}/server/${server.pterodactylIdentifier}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -1172,7 +1172,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
             <div className="space-y-2">
               {server.pterodactylIdentifier && (
                 <a 
-                  href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.yourdomain.ru'}/server/${server.pterodactylIdentifier}`}
+                  href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions'}/server/${server.pterodactylIdentifier}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-foreground py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors duration-200"

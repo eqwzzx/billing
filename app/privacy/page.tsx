@@ -188,7 +188,7 @@ export default function PrivacyPage() {
                   <li>отозвать ранее предоставленное согласие на обработку данных;</li>
                   <li>обратиться в уполномоченный орган по защите персональных данных.</li>
                 </ul>
-                <p>Для реализации своих прав пользователь может обратиться по адресу: legal@fluxor.space</p>
+                <p>Для реализации своих прав пользователь может обратиться по адресу: legal@fluxor.solutions</p>
               </div>
             </section>
 
@@ -250,9 +250,9 @@ export default function PrivacyPage() {
               <div className="space-y-3 text-sm text-muted-foreground">
                 <p>По вопросам обработки персональных данных можно обратиться:</p>
                 <ul className="list-none space-y-2">
-                  <li>Служба поддержки: support@fluxor.space</li>
-                  <li>Сообщения о нарушениях (Abuse): abuse@fluxor.space</li>
-                  <li>Юридические вопросы: legal@fluxor.space</li>
+                  <li>Служба поддержки: support@fluxor.solutions</li>
+                  <li>Сообщения о нарушениях (Abuse): abuse@fluxor.solutions</li>
+                  <li>Юридические вопросы: legal@fluxor.solutions</li>
                 </ul>
               </div>
             </section>

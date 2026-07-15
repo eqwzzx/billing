@@ -14,81 +14,28 @@ export function SiteProtection() {
     const spamInterval = setInterval(spamConsole, 1000)
     spamConsole()
 
-    // Проверка можно ли копировать элемент
-    const canCopy = (element: Element | null): boolean => {
+    // Проверка - это изображение?
+    const isImage = (element: Element | null): boolean => {
       while (element) {
         const tag = element.tagName?.toLowerCase()
-        
-        // Разрешаем для инпутов, textarea, code, pre
-        if (tag === "input" || tag === "textarea" || tag === "code" || tag === "pre") {
+        if (tag === "img" || tag === "svg" || tag === "picture") {
           return true
         }
-        
-        // Разрешаем для contenteditable
-        if (element.getAttribute?.("contenteditable") === "true") {
-          return true
-        }
-        
-        // Разрешаем для элементов с классами или атрибутом
-        if (element.classList?.contains("selectable") || 
-            element.classList?.contains("copyable") ||
-            element.hasAttribute?.("data-copyable")) {
-          return true
-        }
-        
         element = element.parentElement
       }
       return false
     }
 
-    // Блокировка контекстного меню
+    // Блокировка контекстного меню ТОЛЬКО для изображений
     const onContextMenu = (e: MouseEvent) => {
       const target = e.target as Element
-      if (!canCopy(target)) {
+      if (isImage(target)) {
         e.preventDefault()
       }
     }
 
-    // Блокировка выделения
-    const onSelectStart = (e: Event) => {
-      const target = e.target as Element
-      if (!canCopy(target)) {
-        e.preventDefault()
-      }
-    }
-
-    // Блокировка копирования
-    const onCopy = (e: ClipboardEvent) => {
-      const selection = window.getSelection()
-      const anchorNode = selection?.anchorNode
-      const element = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement ?? null
-      
-      if (!canCopy(element)) {
-        e.preventDefault()
-      }
-    }
-
-    // Блокировка вырезания
-    const onCut = (e: ClipboardEvent) => {
-      const selection = window.getSelection()
-      const anchorNode = selection?.anchorNode
-      const element = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement ?? null
-      
-      if (!canCopy(element)) {
-        e.preventDefault()
-      }
-    }
-
-    // Блокировка горячих клавиш
+    // Блокировка горячих клавиш (только DevTools)
     const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as Element
-      const activeElement = document.activeElement
-      
-      // Разрешаем в инпутах
-      if (canCopy(activeElement) || canCopy(target)) {
-        return
-      }
-
       // Блокируем DevTools
       if (e.key === "F12") {
         e.preventDefault()
@@ -98,13 +45,13 @@ export function SiteProtection() {
       if (e.ctrlKey || e.metaKey) {
         const key = e.key.toLowerCase()
         
-        // Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+A, Ctrl+C, Ctrl+X
-        if (["u", "s", "p", "a", "c", "x"].includes(key)) {
+        // Только Ctrl+U (просмотр исходного кода)
+        if (key === "u") {
           e.preventDefault()
           return
         }
         
-        // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+        // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools)
         if (e.shiftKey && ["i", "j", "c"].includes(key)) {
           e.preventDefault()
           return
@@ -112,24 +59,21 @@ export function SiteProtection() {
       }
     }
 
-    // Блокировка перетаскивания
+    // Блокировка перетаскивания изображений
     const onDragStart = (e: DragEvent) => {
-      e.preventDefault()
+      const target = e.target as Element
+      if (isImage(target)) {
+        e.preventDefault()
+      }
     }
 
     document.addEventListener("contextmenu", onContextMenu)
-    document.addEventListener("selectstart", onSelectStart)
-    document.addEventListener("copy", onCopy)
-    document.addEventListener("cut", onCut)
     document.addEventListener("keydown", onKeyDown)
     document.addEventListener("dragstart", onDragStart)
 
     return () => {
       clearInterval(spamInterval)
       document.removeEventListener("contextmenu", onContextMenu)
-      document.removeEventListener("selectstart", onSelectStart)
-      document.removeEventListener("copy", onCopy)
-      document.removeEventListener("cut", onCut)
       document.removeEventListener("keydown", onKeyDown)
       document.removeEventListener("dragstart", onDragStart)
     }

@@ -15,7 +15,7 @@ export default function SupportPage() {
           
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
             <a 
-              href="mailto:support@yourdomain.ru"
+              href="mailto:support@fluxor.solutions"
               className="flex flex-col gap-4 rounded-2xl border border-border/50 bg-card/30 p-6 transition-all hover:border-primary/30"
             >
               <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10">
@@ -24,7 +24,7 @@ export default function SupportPage() {
               <div>
                 <h3 className="font-heading text-lg font-bold text-foreground">Email</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Напишите нам на почту</p>
-                <p className="mt-2 text-sm text-primary">support@yourdomain.ru</p>
+                <p className="mt-2 text-sm text-primary">support@fluxor.solutions</p>
               </div>
             </a>
 

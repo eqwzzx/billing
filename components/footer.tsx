@@ -70,7 +70,7 @@ export function Footer() {
                 </button>
               </li>
               <li>
-                <Link href="/support" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Поддержка
                 </Link>
               </li>
@@ -81,32 +81,32 @@ export function Footer() {
             <h4 className="mb-3 sm:mb-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">Правовое</h4>
             <ul className="space-y-2 sm:space-y-2.5">
               <li>
-                <Link href="/terms" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Соглашение
                 </Link>
               </li>
               <li>
-                <Link href="/offer" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Публичная оферта
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Конфиденциальность
                 </Link>
               </li>
               <li>
-                <Link href="/refund" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Возврат средств
                 </Link>
               </li>
               <li>
-                <Link href="/sla" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   SLA
                 </Link>
               </li>
               <li>
-                <Link href="/liability" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
+                <Link href="/docs" className="text-xs sm:text-sm text-foreground/70 transition-all duration-200 hover:text-foreground hover:translate-x-1 inline-block">
                   Ответственность
                 </Link>
               </li>
@@ -117,7 +117,7 @@ export function Footer() {
             <h4 className="mb-3 sm:mb-4 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">Связаться</h4>
             <div className="space-y-2 sm:space-y-3">
               <a 
-                href="mailto:support@fluxor.space" 
+                href="mailto:support@fluxor.solutions" 
                 className="flex items-center gap-2 sm:gap-3 rounded-lg border border-border/50 bg-card/50 p-2 sm:p-3 transition-all duration-200 hover:border-primary/30 hover:scale-[1.02]"
               >
                 <div className="flex size-7 sm:size-8 items-center justify-center rounded-md sm:rounded-lg bg-primary/10">
@@ -125,11 +125,11 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Email</p>
-                  <p className="text-xs sm:text-sm text-foreground">support@fluxor.space</p>
+                  <p className="text-xs sm:text-sm text-foreground">support@fluxor.solutions</p>
                 </div>
               </a>
               <a 
-                href="mailto:abuse@fluxor.space" 
+                href="mailto:abuse@fluxor.solutions" 
                 className="flex items-center gap-2 sm:gap-3 rounded-lg border border-border/50 bg-card/50 p-2 sm:p-3 transition-all duration-200 hover:border-primary/30 hover:scale-[1.02]"
               >
                 <div className="flex size-7 sm:size-8 items-center justify-center rounded-md sm:rounded-lg bg-red-500/10">
@@ -137,7 +137,7 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Abuse</p>
-                  <p className="text-xs sm:text-sm text-foreground">abuse@fluxor.space</p>
+                  <p className="text-xs sm:text-sm text-foreground">abuse@fluxor.solutions</p>
                 </div>
               </a>
               <a 
@@ -160,7 +160,7 @@ export function Footer() {
 
         <div className="mt-8 sm:mt-12 border-t border-border/30 pt-6 sm:pt-8">
           <div className="text-center text-[10px] sm:text-xs leading-relaxed text-muted-foreground space-y-2">
-            <p>© 2025{currentYear > 2025 ? `-${currentYear}` : ''} yourdomain.ru. All Rights Reserved.</p>
+            <p>© 2025{currentYear > 2025 ? `-${currentYear}` : ''} fluxor.solutions. All Rights Reserved.</p>
             <p className="text-[9px] sm:text-[10px] text-muted-foreground/70">
               Fluxor Hosting Solutions LLC | Registered in Hong Kong
             </p>

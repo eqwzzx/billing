@@ -175,7 +175,7 @@ export function DashboardTab({ user, servers, vdsServers = [] }: DashboardTabPro
           ) : (
             <div className="space-y-2">
               {/* Обычные серверы */}
-              {servers.slice(0, 2).map((server) => {
+              {servers.slice(0, 4).map((server) => {
                 const isActive = server.status === 'ACTIVE'
                 return (
                   <div 
@@ -194,7 +194,7 @@ export function DashboardTab({ user, servers, vdsServers = [] }: DashboardTabPro
                     </div>
                     {server.pterodactylIdentifier && (
                       <a 
-                        href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.yourdomain.ru'}/server/${server.pterodactylIdentifier}`}
+                        href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions'}/server/${server.pterodactylIdentifier}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="opacity-0 group-hover:opacity-100 size-8 rounded-lg bg-foreground/10 flex items-center justify-center hover:bg-foreground/20 transition-all"
@@ -207,7 +207,7 @@ export function DashboardTab({ user, servers, vdsServers = [] }: DashboardTabPro
               })}
               
               {/* VDS серверы */}
-              {vdsServers.slice(0, 2).map((vdsServer) => {
+              {vdsServers.slice(0, 4).map((vdsServer) => {
                 const isActive = vdsServer.status === 'ACTIVE' || vdsServer.status === 'running'
                 return (
                   <div 

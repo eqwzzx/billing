@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 
 const folders = [
   { name: "MyServer", delay: 0 },
-  { name: "yourdomain.ru", delay: 1500 },
+  { name: "fluxor.solutions", delay: 1500 },
   { name: "Новая папка", delay: 3000 },
 ]
 

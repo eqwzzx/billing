@@ -23,6 +23,12 @@ const navItems = [
 export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
   const pathname = usePathname()
 
+  const handleLogoutClick = () => {
+    if (confirm('Вы уверены, что хотите выйти из аккаунта?')) {
+      onLogout()
+    }
+  }
+
   return (
     <nav className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="flex items-center gap-8 rounded-2xl border border-border bg-background/80 py-2 px-6 shadow-lg backdrop-blur-md">
@@ -83,7 +89,7 @@ export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
         <div className="h-6 w-px bg-border/60" />
 
         <button
-          onClick={onLogout}
+          onClick={handleLogoutClick}
           className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium bg-red-500/10 text-red-500 transition-all duration-200 hover:bg-red-500/20 hover:scale-[1.02] active:scale-[0.98]"
           title="Выйти"
         >
