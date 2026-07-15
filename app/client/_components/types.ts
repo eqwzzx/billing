@@ -97,7 +97,7 @@ export interface VdsPlan {
   cpuModel?: string | null
   location?: string | null
   vdsType?: 'STANDARD' | 'PROMO'
-  vdsLocation?: 'DE' | 'RU'
+  vdsLocation?: 'DE' 
   city?: string | null
   country?: string | null
   // Node selection fields
