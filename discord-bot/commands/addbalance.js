@@ -71,6 +71,14 @@ export default {
         return;
       }
 
+      // Получаем информацию об администраторе из БД (если он привязан)
+      const [adminRows] = await connection.execute(
+        'SELECT id FROM User WHERE discordId = ?',
+        [interaction.user.id]
+      );
+      const adminUser = adminRows[0];
+      const adminUserId = adminUser ? adminUser.id : null;
+
       const oldBalance = parseFloat(user.balance) || 0;
       const newBalance = oldBalance + amount;
 
@@ -90,12 +98,13 @@ export default {
         [user.id, amount, 'DEPOSIT', 'COMPLETED', description, externalId, 'MANUAL']
       );
 
-      // Логируем действие в AdminLog
+      // Логируем действие в AdminLog с adminId
       await connection.execute(
-        'INSERT INTO AdminLog (id, userId, action, description, ipAddress, createdAt) VALUES (UUID(), ?, ?, ?, ?, NOW())',
+        'INSERT INTO AdminLog (id, userId, adminId, action, description, ipAddress, createdAt) VALUES (UUID(), ?, ?, ?, ?, ?, NOW())',
         [
-          user.id, 
-          'BALANCE_ADD', 
+          user.id,
+          adminUserId,
+          'BALANCE_ADD',
           `Добавлено ${amount.toFixed(2)} ₽ через Discord Bot. Причина: ${reason}. Администратор: ${adminUsername}`,
           'Discord Bot'
         ]
