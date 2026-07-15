@@ -279,9 +279,20 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       return
     }
     
-    await fetch('/api/auth/logout', { method: 'POST' })
-    notify.success('Вы вышли из аккаунта')
-    router.push('/')
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' })
+      
+      if (res.ok) {
+        notify.success('Вы вышли из аккаунта')
+        // Используем window.location для полной перезагрузки страницы
+        window.location.href = '/'
+      } else {
+        notify.error('Ошибка выхода из аккаунта')
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+      notify.error('Ошибка сети')
+    }
   }
 
   const handleCreateServer = async (planId: string, nodeId: string, name: string, eggId: string | null, promoCode: string | null = null) => {
