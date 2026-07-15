@@ -10,15 +10,16 @@ export default {
     await interaction.deferReply({ ephemeral: true });
 
     try {
-      const db = await getDbConnection();
+      const connection = await getDbConnection();
       const discordId = interaction.user.id;
 
-      const [users] = await db.query(
-        'SELECT id FROM Users WHERE discordId = ?',
+      // Получаем пользователя (таблица User, не Users!)
+      const [userRows] = await connection.execute(
+        'SELECT id, name, email FROM User WHERE discordId = ?',
         [discordId]
       );
 
-      if (users.length === 0) {
+      if (userRows.length === 0) {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
           .setTitle('❌ Аккаунт не привязан')
@@ -28,18 +29,22 @@ export default {
         return;
       }
 
-      const userId = users[0].id;
+      const user = userRows[0];
 
-      const [transactions] = await db.query(
-        `SELECT type, amount, description, createdAt FROM transactions 
+      // Получаем транзакции (таблица Transaction, не transactions!)
+      const [transactions] = await connection.execute(
+        `SELECT type, amount, description, status, method, createdAt 
+         FROM Transaction 
          WHERE userId = ? 
-         ORDER BY createdAt DESC LIMIT 10`,
-        [userId]
+         ORDER BY createdAt DESC 
+         LIMIT 10`,
+        [user.id]
       );
 
       const embed = new EmbedBuilder()
         .setColor('#0099ff')
         .setTitle('💳 История транзакций')
+        .setDescription(`Последние 10 транзакций для ${user.name || user.email}`)
         .setTimestamp()
         .setFooter({ text: 'Fluxor Billing System' });
 
@@ -47,10 +52,40 @@ export default {
         embed.setDescription('У вас пока нет транзакций.');
       } else {
         transactions.forEach(tx => {
-          const emoji = tx.type === 'credit' ? '➕' : '➖';
+          // Определяем эмодзи по типу
+          const typeEmoji = {
+            'DEPOSIT': '💰➕',
+            'PAYMENT': '💸➖',
+            'REFUND': '↩️',
+            'PROMO': '🎁',
+            'VDS_PAYMENT': '🖥️➖',
+            'VDS_RENEWAL': '🔄',
+            'DEDICATED_PAYMENT': '🖥️➖',
+            'DEDICATED_RENEWAL': '🔄',
+            'DOMAIN_PAYMENT': '🌐➖',
+            'DOMAIN_RENEWAL': '🔄',
+            'STORAGEBOX_PAYMENT': '📦➖',
+            'STORAGEBOX_RENEWAL': '🔄'
+          };
+          
+          const emoji = typeEmoji[tx.type] || '💳';
+          
+          // Определяем статус
+          const statusEmoji = {
+            'PENDING': '⏳',
+            'COMPLETED': '✅',
+            'FAILED': '❌'
+          };
+          
+          const status = statusEmoji[tx.status] || '❓';
+          
+          // Форматируем сумму
+          const amount = parseFloat(tx.amount).toFixed(2);
+          const sign = tx.type === 'DEPOSIT' || tx.type === 'REFUND' || tx.type === 'PROMO' ? '+' : '-';
+          
           embed.addFields({
-            name: `${emoji} ${tx.amount.toFixed(2)} ₽`,
-            value: `${tx.description}\n${new Date(tx.createdAt).toLocaleString('ru-RU')}`,
+            name: `${emoji} ${sign}${amount} ₽ ${status}`,
+            value: `${tx.description}\n📅 ${new Date(tx.createdAt).toLocaleString('ru-RU')}`,
             inline: false
           });
         });

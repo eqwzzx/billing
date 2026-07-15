@@ -74,89 +74,80 @@ export default {
       const oldBalance = parseFloat(user.balance) || 0;
       const newBalance = oldBalance + amount;
 
-      // Начинаем транзакцию
-      await connection.beginTransaction();
+      // Обновляем баланс
+      await connection.execute(
+        'UPDATE User SET balance = ?, updatedAt = NOW() WHERE id = ?',
+        [newBalance, user.id]
+      );
 
-      try {
-        // Обновляем баланс
-        await connection.execute(
-          'UPDATE User SET balance = ? WHERE id = ?',
-          [newBalance, user.id]
-        );
+      // Создаём запись о транзакции с информацией об администраторе
+      const adminUsername = `${interaction.user.username}#${interaction.user.discriminator}`;
+      const description = `${reason} | Администратор: ${adminUsername}`;
+      const externalId = `DISCORD_${interaction.user.id}_${Date.now()}`;
+      
+      await connection.execute(
+        'INSERT INTO Transaction (id, userId, amount, type, status, description, externalId, method, createdAt) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, NOW())',
+        [user.id, amount, 'DEPOSIT', 'COMPLETED', description, externalId, 'MANUAL']
+      );
 
-        // Создаём запись о транзакции
-        const paymentId = `DISCORD_${interaction.user.id}_${Date.now()}`;
-        await connection.execute(
-          'INSERT INTO Transaction (userId, amount, type, status, description, externalId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
-          [user.id, amount, 'DEPOSIT', 'COMPLETED', reason, paymentId]
-        );
+      // Логируем действие в AdminLog
+      await connection.execute(
+        'INSERT INTO AdminLog (id, userId, action, description, ipAddress, createdAt) VALUES (UUID(), ?, ?, ?, ?, NOW())',
+        [
+          user.id, 
+          'BALANCE_ADD', 
+          `Добавлено ${amount.toFixed(2)} ₽ через Discord Bot. Причина: ${reason}. Администратор: ${adminUsername}`,
+          'Discord Bot'
+        ]
+      );
 
-        // Логируем действие в AdminLog
-        await connection.execute(
-          'INSERT INTO AdminLog (userId, action, description, ipAddress, createdAt) VALUES (?, ?, ?, ?, NOW())',
-          [
-            user.id, 
-            'BALANCE_ADD', 
-            `Добавлено ${amount.toFixed(2)} ₽ через Discord Bot. Причина: ${reason}. Администратор: ${interaction.user.tag} (${interaction.user.id})`,
-            'Discord Bot'
-          ]
-        );
+      const embed = new EmbedBuilder()
+        .setColor('#00ff00')
+        .setTitle('✅ Баланс успешно пополнен')
+        .setDescription(`Баланс пользователя успешно обновлён`)
+        .addFields(
+          { name: '👤 Пользователь', value: user.name || user.email, inline: true },
+          { name: '📧 Email', value: user.email, inline: true },
+          { name: '💰 Старый баланс', value: `${oldBalance.toFixed(2)} ₽`, inline: true },
+          { name: '💵 Добавлено', value: `**+${amount.toFixed(2)} ₽**`, inline: true },
+          { name: '💎 Новый баланс', value: `**${newBalance.toFixed(2)} ₽**`, inline: true },
+          { name: '📝 Причина', value: reason, inline: false },
+          { name: '👮 Администратор', value: adminUsername, inline: false }
+        )
+        .setTimestamp()
+        .setFooter({ text: `ID транзакции: ${externalId}` });
 
-        // Коммитим транзакцию
-        await connection.commit();
+      if (user.discordId) {
+        embed.addFields({ 
+          name: '🔗 Discord', 
+          value: `<@${user.discordId}>`, 
+          inline: true 
+        });
+      }
 
-        const embed = new EmbedBuilder()
-          .setColor('#00ff00')
-          .setTitle('✅ Баланс успешно пополнен')
-          .setDescription(`Баланс пользователя успешно обновлён`)
-          .addFields(
-            { name: '👤 Пользователь', value: user.name || user.email, inline: true },
-            { name: '📧 Email', value: user.email, inline: true },
-            { name: '💰 Старый баланс', value: `${oldBalance.toFixed(2)} ₽`, inline: true },
-            { name: '💵 Добавлено', value: `**+${amount.toFixed(2)} ₽**`, inline: true },
-            { name: '💎 Новый баланс', value: `**${newBalance.toFixed(2)} ₽**`, inline: true },
-            { name: '📝 Причина', value: reason, inline: false }
-          )
-          .setTimestamp()
-          .setFooter({ text: `Выполнил: ${interaction.user.tag} • ID транзакции: ${paymentId}` });
+      await interaction.editReply({ embeds: [embed] });
 
-        if (user.discordId) {
-          embed.addFields({ 
-            name: '🔗 Discord', 
-            value: `<@${user.discordId}>`, 
-            inline: true 
-          });
+      // Отправляем уведомление пользователю (если у него привязан Discord)
+      if (user.discordId) {
+        try {
+          const targetUser = await interaction.client.users.fetch(user.discordId);
+          const userEmbed = new EmbedBuilder()
+            .setColor('#00ff00')
+            .setTitle('💰 Баланс пополнен')
+            .setDescription(`Ваш баланс пополнен администратором!`)
+            .addFields(
+              { name: '💵 Добавлено', value: `**+${amount.toFixed(2)} ₽**`, inline: true },
+              { name: '💎 Новый баланс', value: `**${newBalance.toFixed(2)} ₽**`, inline: true },
+              { name: '📝 Причина', value: reason, inline: false }
+            )
+            .setTimestamp()
+            .setFooter({ text: 'Fluxor Billing System' });
+
+          await targetUser.send({ embeds: [userEmbed] });
+          console.log(`✅ Отправлено уведомление пользователю ${user.email}`);
+        } catch (error) {
+          console.log('⚠️ Не удалось отправить уведомление пользователю:', error.message);
         }
-
-        await interaction.editReply({ embeds: [embed] });
-
-        // Отправляем уведомление пользователю (если у него привязан Discord)
-        if (user.discordId) {
-          try {
-            const targetUser = await interaction.client.users.fetch(user.discordId);
-            const userEmbed = new EmbedBuilder()
-              .setColor('#00ff00')
-              .setTitle('💰 Баланс пополнен')
-              .setDescription(`Ваш баланс пополнен администратором!`)
-              .addFields(
-                { name: '💵 Добавлено', value: `**+${amount.toFixed(2)} ₽**`, inline: true },
-                { name: '💎 Новый баланс', value: `**${newBalance.toFixed(2)} ₽**`, inline: true },
-                { name: '📝 Причина', value: reason, inline: false }
-              )
-              .setTimestamp()
-              .setFooter({ text: 'Fluxor Billing System' });
-
-            await targetUser.send({ embeds: [userEmbed] });
-            console.log(`✅ Отправлено уведомление пользователю ${user.email}`);
-          } catch (error) {
-            console.log('⚠️ Не удалось отправить уведомление пользователю:', error.message);
-          }
-        }
-
-      } catch (error) {
-        // Откатываем транзакцию в случае ошибки
-        await connection.rollback();
-        throw error;
       }
 
     } catch (error) {
