@@ -37,7 +37,7 @@ export function Footer() {
                 <Server className="size-4 sm:size-5 text-primary" />
               </div>
               <span className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                Fluxor<span className="text-primary">.host</span>
+                Fluxor<span className="text-primary">.solutions</span>
               </span>
             </Link>
             <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">
@@ -141,7 +141,7 @@ export function Footer() {
                 </div>
               </a>
               <a 
-                href="https://dsc.gg/avelonmy" 
+                href="https://discord.gg/S39VPEzdyK" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 sm:gap-3 rounded-lg border border-border/50 bg-card/50 p-2 sm:p-3 transition-all duration-200 hover:border-primary/30 hover:scale-[1.02]"

@@ -469,7 +469,7 @@ export async function POST(request: NextRequest) {
       },
       pterodactyl: {
         password: pterodactylPassword,
-        panelUrl: process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions',
+        panelUrl: process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://console.fluxor.solutions',
         username: user.email
       }
     })

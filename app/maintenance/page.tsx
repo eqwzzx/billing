@@ -7,7 +7,7 @@ import Image from "next/image"
 import { Construction, ExternalLink, Sun, Moon, LayoutDashboard, Globe, Server } from "lucide-react"
 
 const links = [
-  { name: "Панель управления", url: "https://control.fluxor.solutions", icon: LayoutDashboard },
+  { name: "Панель управления", url: "https://console.fluxor.solutions", icon: LayoutDashboard },
   { name: "Главный сайт", url: "https://fluxor.solutions", icon: Globe },
   { name: "VM Panel", url: "https://vm.fluxor.solutions", icon: Server },
 ]
