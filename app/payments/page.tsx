@@ -164,7 +164,7 @@ function PaymentsContent() {
   const methods = [
     { id: "heleket", name: "Crypto", icon: "/heleket.png" },
     { id: "yoomoney", name: "YooMoney", icon: "/yoomoney.png" },
-    { id: "crystalpay", name: "CrystalPay", icon: "/crystalpay.png.png" },
+    { id: "crystalpay", name: "CrystalPay", icon: "/crystalpay.png" },
   ] as const
 
   return (
