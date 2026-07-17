@@ -324,16 +324,6 @@ export function Pricing() {
                 <Code className="size-3.5 sm:size-4" />
                 Coding
               </button>
-              <button
-                data-type="vds"
-                onClick={() => setPlanType("vds")}
-                className={`relative z-10 flex items-center gap-1 sm:gap-1.5 rounded-md px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium whitespace-nowrap ${
-                  planType === "vds" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Cloud className="size-3.5 sm:size-4" />
-                VDS
-              </button>
             </div>
 
             <div ref={currencyRef} className="relative flex rounded-lg border border-border/50 bg-card/50 p-1 self-start sm:self-auto">
@@ -364,59 +354,38 @@ export function Pricing() {
           </div>
         </div>
 
-        {/* VDS Sub-tabs */}
-        {planType === "vds" && (
-          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
-            {/* Location selector */}
-            <div 
-              ref={locationRef} 
-              className="relative inline-flex rounded-lg border border-border/50 bg-card/50 p-1 min-h-[40px] sm:min-h-[44px] items-center"
-            >
-              <span className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-foreground">
-                <img src="/de.png" alt="Germany" className="size-4 rounded-sm" />
-                Germany
-              </span>
-            </div>
 
-            {/* Plan type selector */}
-            <div ref={vdsTabsRef} className="relative inline-flex rounded-lg border border-border/50 bg-card/50 p-1">
-              <div
-                className="absolute top-1 h-[calc(100%-8px)] rounded-md bg-primary transition-all duration-300 ease-out"
-                style={{
-                  width: vdsIndicatorStyle.width,
-                  left: vdsIndicatorStyle.left,
-                }}
-              />
-              <button
-                data-vds-type="promo"
-                onClick={() => setVdsSubType("promo")}
-                className={`relative z-10 flex items-center gap-1.5 rounded-md px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium ${
-                  vdsSubType === "promo" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Flame className="size-3.5 sm:size-4" />
-                VDS - PROMO
-                <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-orange-500/20 text-orange-400 font-semibold">
-                  ХИТ
-                </span>
-              </button>
-              <button
-                data-vds-type="standard"
-                onClick={() => setVdsSubType("standard")}
-                className={`relative z-10 flex items-center gap-1.5 rounded-md px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium ${
-                  vdsSubType === "standard" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Zap className="size-3.5 sm:size-4" />
-                VDS
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Pricing Grid */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map((plan, index) => (
+        {planType === "vds" ? (
+          <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+            <div className="relative rounded-2xl border-2 border-dashed border-border/50 bg-card/30 backdrop-blur-sm p-8 sm:p-12 max-w-md text-center">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <Cloud className="size-16 sm:size-20 text-muted-foreground/30" />
+                  <div className="absolute -top-1 -right-1 flex size-8 sm:size-10 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
+                    <Lock className="size-4 sm:size-5 text-primary/60" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-heading text-xl sm:text-2xl font-bold text-foreground mb-2">
+                    VDS тарифы
+                  </h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Скоро будут доступны мощные VDS серверы с лучшими характеристиками
+                  </p>
+                </div>
+                <div className="mt-2 px-4 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                  <span className="text-xs sm:text-sm font-medium text-primary/80">
+                    Следите за обновлениями
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.map((plan, index) => (
               <div
                 key={plan.name}
                 className="relative rounded-xl sm:rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
@@ -577,9 +546,9 @@ export function Pricing() {
                   </div>
                 </div>
               </div>
-            ))
-          }
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

@@ -4,8 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import Image from "next/image"
-import { Server, Plus, Settings, LogOut, Home, Wallet, Shield } from "lucide-react"
+import { Server, Plus, Settings, LogOut, Home, Wallet, Shield, Menu, X } from "lucide-react"
 import { User } from "./types"
+import { useState } from "react"
 
 interface ClientHeaderProps {
   user: User
@@ -22,6 +23,7 @@ const navItems = [
 
 export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
   const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogoutClick = () => {
     if (confirm('Вы уверены, что хотите выйти из аккаунта?')) {
@@ -30,14 +32,16 @@ export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
   }
 
   return (
-    <nav className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div className="flex items-center gap-8 rounded-2xl border border-border bg-background/80 py-2 px-6 shadow-lg backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-2 hover:scale-105 transition-transform duration-200">
-          <Image src="/logo.svg" alt="Fluxor" width={28} height={28} className="size-7 brightness-0 dark:brightness-100" />
-          <span className="font-heading text-lg font-bold tracking-tight text-foreground">Fluxor</span>
+    <>
+      <nav className="fixed top-2 sm:top-4 left-1/2 z-50 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-auto max-w-[calc(100%-1rem)] animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="flex items-center justify-between gap-3 sm:gap-8 rounded-xl sm:rounded-2xl border border-border bg-background/80 py-1.5 sm:py-2 px-3 sm:px-6 shadow-lg backdrop-blur-md">
+        <Link href="/" className="flex items-center gap-1 sm:gap-2 hover:scale-105 transition-transform duration-200">
+          <Image src="/logo.svg" alt="Fluxor" width={28} height={28} className="size-5 sm:size-7 brightness-0 dark:brightness-100" />
+          <span className="font-heading text-sm sm:text-lg font-bold tracking-tight text-foreground">Fluxor</span>
         </Link>
 
-        <div className="hidden items-center gap-1 sm:flex">
+        {/* Desktop Navigation */}
+        <div className="hidden items-center gap-1 lg:flex">
           {navItems.map((item) => {
             const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
             return (
@@ -57,27 +61,29 @@ export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
           })}
         </div>
 
-        {/* Разделитель */}
-        <div className="h-6 w-px bg-border/60" />
+        {/* Desktop Dividers and Actions */}
+        <div className="h-6 w-px bg-border/60 hidden lg:block" />
 
-        <ThemeToggle />
+        <div className="hidden lg:block">
+          <ThemeToggle />
+        </div>
 
-        <div className="h-6 w-px bg-border/60" />
+        <div className="h-6 w-px bg-border/60 hidden lg:block" />
 
         <Link
           href="/client/billing"
-          className="flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+          className="hidden sm:flex items-center gap-1.5 rounded-lg bg-foreground px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-background transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
         >
-          <Wallet className="size-4" />
+          <Wallet className="size-3.5 sm:size-4" />
           <span className="font-heading font-bold whitespace-nowrap">{user.balance.toFixed(0)} ₽</span>
         </Link>
 
         {user.role === "ADMIN" && (
           <>
-            <div className="h-6 w-px bg-border/60" />
+            <div className="h-6 w-px bg-border/60 hidden lg:block" />
             <Link
               href="/admin"
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all duration-200 hover:from-amber-500/20 hover:to-orange-500/20 hover:scale-[1.02] active:scale-[0.98]"
+              className="hidden lg:flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all duration-200 hover:from-amber-500/20 hover:to-orange-500/20 hover:scale-[1.02] active:scale-[0.98]"
               title="Админ панель"
             >
               <Shield className="size-4" />
@@ -86,16 +92,99 @@ export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
           </>
         )}
 
-        <div className="h-6 w-px bg-border/60" />
+        <div className="h-6 w-px bg-border/60 hidden lg:block" />
 
         <button
           onClick={handleLogoutClick}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium bg-red-500/10 text-red-500 transition-all duration-200 hover:bg-red-500/20 hover:scale-[1.02] active:scale-[0.98]"
+          className="hidden lg:flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium bg-red-500/10 text-red-500 transition-all duration-200 hover:bg-red-500/20 hover:scale-[1.02] active:scale-[0.98]"
           title="Выйти"
         >
           <LogOut className="size-4" />
         </button>
+
+        {/* Mobile Actions */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <div className="block lg:hidden">
+            <ThemeToggle />
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex items-center justify-center size-8 rounded-lg text-foreground transition-colors hover:bg-accent"
+            aria-label="Меню"
+          >
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+        </div>
       </div>
     </nav>
+
+    {/* Mobile Menu */}
+    {mobileMenuOpen && (
+      <div className="fixed inset-0 z-40 lg:hidden">
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+        <div className="absolute top-16 sm:top-20 left-2 right-2 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-xl animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="p-4 space-y-1">
+            {navItems.map((item) => {
+              const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors ${
+                    isActive
+                      ? "bg-accent text-foreground font-medium"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                >
+                  <item.icon className="size-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+            
+            <div className="border-t border-border pt-3 mt-3 space-y-2">
+              <Link
+                href="/client/billing"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between rounded-xl px-4 py-3 bg-foreground text-background hover:opacity-90 transition-opacity"
+              >
+                <div className="flex items-center gap-3">
+                  <Wallet className="size-4" />
+                  <span className="text-sm font-medium">Баланс</span>
+                </div>
+                <span className="font-heading font-bold text-sm">{user.balance.toFixed(0)} ₽</span>
+              </Link>
+
+              {user.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                >
+                  <Shield className="size-4" />
+                  <span className="text-sm font-medium">Админ панель</span>
+                </Link>
+              )}
+
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  handleLogoutClick()
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+              >
+                <LogOut className="size-4" />
+                <span className="text-sm font-medium">Выйти</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

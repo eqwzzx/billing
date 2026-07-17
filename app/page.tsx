@@ -64,7 +64,7 @@ function HomeContent() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative flex min-h-[80vh] sm:min-h-screen flex-col items-center justify-center px-3 sm:px-4 pb-4 sm:pb-8 pt-20 sm:pt-24">
+      <section className="relative flex min-h-[80vh] sm:min-h-screen flex-col items-center justify-center px-3 sm:px-4 pb-8 sm:pb-8 pt-20 sm:pt-24">
         <HeroContainer 
           onPricingClick={scrollToPricing}
           onFeaturesClick={scrollToFeatures}

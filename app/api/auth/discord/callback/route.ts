@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { giveDiscordRole } from '@/lib/discord-role';
+import { discordLogger } from '@/lib/discord-logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
 
@@ -247,7 +248,7 @@ async function handleDiscordLink(request: NextRequest, discordUser: DiscordUser,
 
     console.log('[Discord Link] Updating user record...');
     // Привязываем Discord ID к текущему пользователю
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: decoded.userId },
       data: { 
         discordId: discordUser.id,
@@ -258,6 +259,17 @@ async function handleDiscordLink(request: NextRequest, discordUser: DiscordUser,
       },
     });
     console.log('[Discord Link] User record updated successfully');
+
+    // Discord логирование привязки
+    await discordLogger.logDiscordLink({
+      userId: updatedUser.id,
+      userName: updatedUser.name || 'Unknown',
+      userEmail: updatedUser.email,
+      discordId: discordUser.id,
+      discordUsername: discordUser.username,
+      discordAvatar: discordUser.avatar,
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+    }).catch(err => console.error('Discord log error:', err));
 
     // Выдаём роль в Discord
     console.log('[Discord Link] Giving Discord role...');

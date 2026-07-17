@@ -44,41 +44,41 @@ export function BillingTab({ user, servers }: BillingTabProps) {
   const paginatedTx = transactions.slice((page - 1) * perPage, page * perPage)
 
   return (
-    <div className="max-w-5xl mx-auto pb-8">
+    <div className="max-w-5xl mx-auto pb-8 px-3 sm:px-4">
       {/* Hero */}
-      <div className="relative rounded-2xl overflow-hidden mb-6 border border-border/50 bg-card/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="relative rounded-2xl overflow-hidden mb-4 sm:mb-6 border border-border/50 bg-card/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="absolute inset-0" style={{ backgroundImage: 'url(/pay.jpg)', backgroundPosition: 'center', backgroundSize: 'cover' }} />
         <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 p-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <div className="relative z-10 p-4 sm:p-6">
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="flex-1 min-w-0">
               <p className="text-white/60 text-xs mb-1">Текущий баланс</p>
-              <h1 className="font-heading text-3xl font-bold text-white tabular-nums transition-all duration-300">{user.balance.toFixed(0)} ₽</h1>
-              <p className="text-white/60 text-sm mt-1">
+              <h1 className="font-heading text-2xl sm:text-3xl font-bold text-white tabular-nums transition-all duration-300">{user.balance.toFixed(0)} ₽</h1>
+              <p className="text-white/60 text-xs sm:text-sm mt-1">
                 {daysRemaining === Infinity ? "Нет активных серверов" : `Хватит на ~${daysRemaining} дней`}
               </p>
             </div>
-            <div className="size-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
-              <Wallet className="size-7 text-white" />
+            <div className="size-12 sm:size-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+              <Wallet className="size-6 sm:size-7 text-white" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Пополнение */}
-        <div className="rounded-2xl border border-border/50 bg-card/30 p-6 animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Plus className="size-4 text-muted-foreground" />
-            <h2 className="font-heading font-semibold text-foreground">Пополнение</h2>
+        <div className="rounded-2xl border border-border/50 bg-card/30 p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <Plus className="size-3.5 sm:size-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-sm sm:text-base text-foreground">Пополнение</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-3 sm:mb-4">
             {amounts.map((amount) => (
               <button
                 key={amount}
                 onClick={() => { setSelectedAmount(amount); setCustomAmount("") }}
-                className={`py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                   selectedAmount === amount
                     ? "bg-foreground text-background scale-[1.02]"
                     : "border border-border/50 bg-card/50 text-foreground hover:border-foreground/30 hover:scale-[1.02]"
@@ -89,46 +89,46 @@ export function BillingTab({ user, servers }: BillingTabProps) {
             ))}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="number"
               value={customAmount}
               onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null) }}
               placeholder="Своя сумма (мин. 10₽)"
-              className="flex-1 px-4 py-3 rounded-xl border border-border/50 bg-card/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/50 transition-all duration-200"
+              className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-border/50 bg-card/50 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/50 transition-all duration-200"
             />
             <button
               onClick={handlePayment}
               disabled={!selectedAmount && (!customAmount || parseInt(customAmount) < 10)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-foreground text-background text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-foreground text-background text-xs sm:text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Zap className="size-4" />
+              <Zap className="size-3.5 sm:size-4" />
               Оплатить
             </button>
           </div>
 
-          <div className="flex items-center gap-3 mt-3">
-            <CreditCard className="size-5 text-muted-foreground" />
-            <svg id="Icon/Pay/SBP" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none"><path fill="#fff" d="M0 0h28v28H0z"/><path fill="#5B57A2" d="m6.609 8.852 2.208 3.947v2.407l-2.206 3.94z"/><path fill="#D90751" d="m15.087 11.363 2.07-1.268 4.234-.005-6.304 3.862z"/><path fill="#FAB718" d="m15.075 8.829.012 5.225-2.213-1.36v-7.81z"/><path fill="#ED6F26" d="m21.39 10.09-4.234.005-2.08-1.266-2.202-3.946z"/><path fill="#63B22F" d="M15.087 19.167v-2.535l-2.213-1.334v7.819z"/><path fill="#1487C9" d="M17.151 17.91 8.817 12.8 6.609 8.852l14.773 9.054z"/><path fill="#017F36" d="m12.875 23.117 2.212-3.95 2.064-1.256 4.23-.006z"/><path fill="#984995" d="m6.611 19.145 6.281-3.847-2.111-1.296-1.964 1.204z"/></svg>
-            <Bitcoin className="size-5 text-muted-foreground" />
+          <div className="flex items-center gap-2 sm:gap-3 mt-3 justify-center sm:justify-start flex-wrap">
+            <CreditCard className="size-4 sm:size-5 text-muted-foreground" />
+            <svg id="Icon/Pay/SBP" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg" width="28" height="28" className="size-7 sm:size-8" fill="none"><path fill="#fff" d="M0 0h28v28H0z"/><path fill="#5B57A2" d="m6.609 8.852 2.208 3.947v2.407l-2.206 3.94z"/><path fill="#D90751" d="m15.087 11.363 2.07-1.268 4.234-.005-6.304 3.862z"/><path fill="#FAB718" d="m15.075 8.829.012 5.225-2.213-1.36v-7.81z"/><path fill="#ED6F26" d="m21.39 10.09-4.234.005-2.08-1.266-2.202-3.946z"/><path fill="#63B22F" d="M15.087 19.167v-2.535l-2.213-1.334v7.819z"/><path fill="#1487C9" d="M17.151 17.91 8.817 12.8 6.609 8.852l14.773 9.054z"/><path fill="#017F36" d="m12.875 23.117 2.212-3.95 2.064-1.256 4.23-.006z"/><path fill="#984995" d="m6.611 19.145 6.281-3.847-2.111-1.296-1.964 1.204z"/></svg>
+            <Bitcoin className="size-4 sm:size-5 text-muted-foreground" />
           </div>
         </div>
 
         {/* История */}
-        <div className="rounded-2xl border border-border/50 bg-card/30 p-6 animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Receipt className="size-4 text-muted-foreground" />
-            <h2 className="font-heading font-semibold text-foreground">История</h2>
+        <div className="rounded-2xl border border-border/50 bg-card/30 p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <Receipt className="size-3.5 sm:size-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-sm sm:text-base text-foreground">История</h2>
             {transactions.length > 0 && (
               <span className="text-xs text-muted-foreground ml-auto">{transactions.length}</span>
             )}
           </div>
 
           {transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">Операций пока нет</p>
+            <p className="text-xs sm:text-sm text-muted-foreground text-center py-6 sm:py-8">Операций пока нет</p>
           ) : (
             <>
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 {paginatedTx.map((tx, index) => {
                   // Определяем является ли транзакция доходной или расходной
                   const isIncome = tx.type === 'DEPOSIT' || tx.type === 'PROMO' || tx.type === 'REFUND';
@@ -137,19 +137,19 @@ export function BillingTab({ user, servers }: BillingTabProps) {
                   return (
                   <div 
                     key={tx.id} 
-                    className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted/30 transition-all duration-200 animate-in fade-in slide-in-from-right-2"
+                    className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-muted/20 hover:bg-muted/30 transition-all duration-200 animate-in fade-in slide-in-from-right-2"
                     style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
                   >
-                    <div className={`size-8 rounded-lg flex items-center justify-center ${isIncome ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
-                      {isIncome ? <ArrowUpRight className="size-4 text-emerald-500" /> : <ArrowDownRight className="size-4 text-red-500" />}
+                    <div className={`size-7 sm:size-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isIncome ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                      {isIncome ? <ArrowUpRight className="size-3.5 sm:size-4 text-emerald-500" /> : <ArrowDownRight className="size-3.5 sm:size-4 text-red-500" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground truncate">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-foreground truncate">{tx.description}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
                         {new Date(tx.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </div>
-                    <p className={`text-sm font-medium tabular-nums ${isIncome ? "text-emerald-500" : "text-red-500"}`}>
+                    <p className={`text-xs sm:text-sm font-medium tabular-nums ${isIncome ? "text-emerald-500" : "text-red-500"}`}>
                       {displayAmount > 0 ? "+" : ""}{displayAmount} ₽
                     </p>
                   </div>

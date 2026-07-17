@@ -7,6 +7,10 @@ import {
   getPterodactylServerStatus
 } from '@/lib/pterodactyl'
 import { requireAdminAuth } from '@/lib/auth-admin'
+import { discordLogger } from '@/lib/discord-logger'
+import jwt from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET
 
 export async function GET(request: NextRequest) {
   const authError = requireAdminAuth(request)
@@ -102,10 +106,26 @@ export async function POST(request: NextRequest) {
   if (authError) return authError
 
   try {
+    // Получаем админа
+    const token = request.cookies.get('auth-token')?.value
+    let adminUser = null
+    if (token && JWT_SECRET) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string }
+        adminUser = await prisma.user.findUnique({ where: { id: decoded.userId } })
+      } catch {}
+    }
+
     const body = await request.json()
     const { action, serverId, force } = body
     
-    const server = await prisma.server.findUnique({ where: { id: serverId } })
+    const server = await prisma.server.findUnique({ 
+      where: { id: serverId },
+      include: {
+        user: { select: { id: true, email: true, name: true } },
+        plan: { select: { name: true } },
+      }
+    })
     if (!server) {
       return NextResponse.json({ error: 'Server not found' }, { status: 404 })
     }
@@ -120,6 +140,21 @@ export async function POST(request: NextRequest) {
           where: { id: serverId },
           data: { status: 'SUSPENDED' },
         })
+        
+        // Discord логирование
+        if (adminUser) {
+          await discordLogger.logServer({
+            action: 'suspend',
+            userId: server.user.id,
+            userName: server.user.name || 'Unknown',
+            userEmail: server.user.email,
+            serverId: server.id,
+            serverName: server.name,
+            planName: server.plan?.name,
+            adminId: adminUser.id,
+            adminName: adminUser.name || 'Admin',
+          }).catch(err => console.error('Discord log error:', err));
+        }
         break
         
       case 'unsuspend':
@@ -131,6 +166,21 @@ export async function POST(request: NextRequest) {
           where: { id: serverId },
           data: { status: 'ACTIVE' },
         })
+        
+        // Discord логирование
+        if (adminUser) {
+          await discordLogger.logServer({
+            action: 'unsuspend',
+            userId: server.user.id,
+            userName: server.user.name || 'Unknown',
+            userEmail: server.user.email,
+            serverId: server.id,
+            serverName: server.name,
+            planName: server.plan?.name,
+            adminId: adminUser.id,
+            adminName: adminUser.name || 'Admin',
+          }).catch(err => console.error('Discord log error:', err));
+        }
         break
         
       case 'delete':
@@ -153,6 +203,21 @@ export async function POST(request: NextRequest) {
           where: { id: serverId },
           data: { status: 'DELETED' },
         })
+        
+        // Discord логирование удаления
+        if (adminUser) {
+          await discordLogger.logServer({
+            action: 'delete',
+            userId: server.user.id,
+            userName: server.user.name || 'Unknown',
+            userEmail: server.user.email,
+            serverId: server.id,
+            serverName: server.name,
+            planName: server.plan?.name,
+            adminId: adminUser.id,
+            adminName: adminUser.name || 'Admin',
+          }).catch(err => console.error('Discord log error:', err));
+        }
         break
         
       case 'force_delete':
@@ -161,6 +226,21 @@ export async function POST(request: NextRequest) {
           where: { id: serverId },
           data: { status: 'DELETED' },
         })
+        
+        // Discord логирование принудительного удаления
+        if (adminUser) {
+          await discordLogger.logServer({
+            action: 'delete',
+            userId: server.user.id,
+            userName: server.user.name || 'Unknown',
+            userEmail: server.user.email,
+            serverId: server.id,
+            serverName: server.name,
+            planName: server.plan?.name,
+            adminId: adminUser.id,
+            adminName: adminUser.name || 'Admin',
+          }).catch(err => console.error('Discord log error:', err));
+        }
         break
         
       default:

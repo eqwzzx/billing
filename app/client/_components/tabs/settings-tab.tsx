@@ -236,32 +236,32 @@ export function SettingsTab({
     setEmailError(null)
   }
   return (
-    <div className="max-w-5xl mx-auto pb-8">
+    <div className="max-w-5xl mx-auto pb-8 px-3 sm:px-4">
       {/* Hero */}
-      <div className="relative rounded-2xl overflow-hidden mb-6 border border-border/50 bg-card/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className="relative rounded-2xl overflow-hidden mb-4 sm:mb-6 border border-border/50 bg-card/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div 
           className="absolute inset-0"
           style={{ backgroundImage: 'url(/waves.jpg)', backgroundPosition: 'center', backgroundSize: 'cover' }}
         />
         <div className="absolute inset-0 bg-black/40" />
         
-        <div className="relative z-10 p-6">
-          <h1 className="font-heading text-2xl font-bold text-white">Настройки</h1>
-          <p className="text-white/60 text-sm mt-1">Управление аккаунтом и безопасностью</p>
+        <div className="relative z-10 p-4 sm:p-6">
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-white">Настройки</h1>
+          <p className="text-white/60 text-xs sm:text-sm mt-1">Управление аккаунтом и безопасностью</p>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-border/50 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
-          <div className="px-5 py-4 border-b border-border/30 bg-muted/20">
-            <h2 className="font-heading font-bold text-foreground flex items-center gap-2">
-              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Settings className="size-4 text-primary" />
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/30 bg-muted/20">
+            <h2 className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Settings className="size-3.5 sm:size-4 text-primary" />
               </div>
               Профиль
             </h2>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-4 sm:p-5 space-y-3 sm:space-y-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</label>
               <div className="mt-1.5 px-4 py-2.5 rounded-xl bg-muted/30 border border-border/30 text-sm text-muted-foreground flex items-center justify-between">
@@ -400,38 +400,38 @@ export function SettingsTab({
         </div>
 
         <div className="rounded-2xl border border-border/50 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '150ms', animationFillMode: 'both' }}>
-          <div className="px-5 py-4 border-b border-border/30 bg-muted/20">
-            <h2 className="font-heading font-bold text-foreground flex items-center gap-2">
-              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Shield className="size-4 text-primary" />
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/30 bg-muted/20">
+            <h2 className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Shield className="size-3.5 sm:size-4 text-primary" />
               </div>
               Безопасность
             </h2>
           </div>
-          <div className="p-5">
-            <p className="text-sm text-muted-foreground mb-4">
+          <div className="p-4 sm:p-5">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
               Управление паролем от аккаунта на сайте
             </p>
             <button 
               onClick={onShowPasswordModal}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-border/50 bg-muted/20 px-4 py-2.5 text-xs sm:text-sm font-medium text-foreground hover:bg-muted/40 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
             >
-              <RefreshCw className="size-4" />
+              <RefreshCw className="size-3.5 sm:size-4" />
               Сменить пароль
             </button>
           </div>
         </div>
 
         <div className="rounded-2xl border border-[#5865F2]/20 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '175ms', animationFillMode: 'both' }}>
-          <div className="px-5 py-4 border-b border-[#5865F2]/20 bg-[#5865F2]/5">
-            <h2 className="font-heading font-bold text-foreground flex items-center gap-2">
-              <div className="size-8 rounded-lg bg-[#5865F2]/10 flex items-center justify-center">
-                <DiscordIcon className="size-4 text-[#5865F2]" />
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-[#5865F2]/20 bg-[#5865F2]/5">
+            <h2 className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
+              <div className="size-7 sm:size-8 rounded-lg bg-[#5865F2]/10 flex items-center justify-center">
+                <DiscordIcon className="size-3.5 sm:size-4 text-[#5865F2]" />
               </div>
               Discord
             </h2>
           </div>
-          <div className="p-5">
+          <div className="p-4 sm:p-5">
             {showDiscordSuccess && (
               <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
                 <p className="text-sm text-green-600 dark:text-green-400 font-medium flex items-center gap-2">
@@ -441,69 +441,69 @@ export function SettingsTab({
               </div>
             )}
             {discordLoading ? (
-              <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin" />
-                <span className="text-sm">Загрузка...</span>
+              <div className="flex items-center justify-center gap-2 py-6 sm:py-8 text-muted-foreground">
+                <Loader2 className="size-4 sm:size-5 animate-spin" />
+                <span className="text-xs sm:text-sm">Загрузка...</span>
               </div>
             ) : discordLinked && discordData ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/20">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/20">
                   <img
                     src={getDiscordAvatarUrl(discordData.discordId || '', discordData.avatar)}
                     alt="Discord Avatar"
-                    className="size-16 rounded-full border-2 border-[#5865F2]"
+                    className="size-12 sm:size-16 rounded-full border-2 border-[#5865F2] flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
+                    <p className="font-medium text-sm sm:text-base text-foreground truncate">
                       {discordData.globalName || discordData.username || 'Discord User'}
                     </p>
                     {discordData.username && (
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         @{discordData.username}
                         {discordData.discriminator && discordData.discriminator !== '0' && (
                           <span className="text-[#5865F2]">#{discordData.discriminator}</span>
                         )}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground font-mono mt-1">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground font-mono mt-1 truncate">
                       ID: {discordData.discordId}
                     </p>
                   </div>
-                  <CheckCircle className="size-6 text-[#5865F2] flex-shrink-0" />
+                  <CheckCircle className="size-5 sm:size-6 text-[#5865F2] flex-shrink-0" />
                 </div>
-                <div className="p-4 rounded-xl bg-muted/20 border border-border/30">
-                  <p className="text-sm font-medium text-foreground mb-2">Доступные возможности:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1.5">
+                <div className="p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/30">
+                  <p className="text-xs sm:text-sm font-medium text-foreground mb-2">Доступные возможности:</p>
+                  <ul className="text-xs sm:text-sm text-muted-foreground space-y-1.5">
                     <li className="flex items-center gap-2">
-                      <Check className="size-3.5 text-[#5865F2]" />
-                      Управление через Discord команды
+                      <Check className="size-3 sm:size-3.5 text-[#5865F2] flex-shrink-0" />
+                      <span>Управление через Discord команды</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="size-3.5 text-[#5865F2]" />
-                      Уведомления о серверах и платежах
+                      <Check className="size-3 sm:size-3.5 text-[#5865F2] flex-shrink-0" />
+                      <span>Уведомления о серверах и платежах</span>
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="size-3.5 text-[#5865F2]" />
-                      Эксклюзивная роль на сервере
+                      <Check className="size-3 sm:size-3.5 text-[#5865F2] flex-shrink-0" />
+                      <span>Эксклюзивная роль на сервере</span>
                     </li>
                   </ul>
                 </div>
                 <button
                   onClick={handleDiscordUnlink}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs sm:text-sm font-medium text-red-400 hover:bg-red-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200"
                 >
-                  <XCircle className="size-4" />
+                  <XCircle className="size-3.5 sm:size-4" />
                   Отвязать Discord
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="text-center py-4">
-                  <div className="size-16 rounded-2xl bg-[#5865F2]/10 flex items-center justify-center mx-auto mb-4">
-                    <DiscordIcon className="size-8 text-[#5865F2]" />
+                  <div className="size-12 sm:size-16 rounded-2xl bg-[#5865F2]/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <DiscordIcon className="size-6 sm:size-8 text-[#5865F2]" />
                   </div>
-                  <p className="text-sm font-medium text-foreground mb-2">Discord не привязан</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm font-medium text-foreground mb-2">Discord не привязан</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Привяжите Discord для управления через бота
                   </p>
                 </div>
@@ -548,54 +548,54 @@ export function SettingsTab({
         </div>
 
         <div className="lg:col-span-2 rounded-2xl border border-border/50 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
-          <div className="px-5 py-4 border-b border-border/30 bg-muted/20">
-            <h2 className="font-heading font-bold text-foreground flex items-center gap-2">
-              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Link2 className="size-4 text-primary" />
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/30 bg-muted/20">
+            <h2 className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Link2 className="size-3.5 sm:size-4 text-primary" />
               </div>
               Панель управления серверами
             </h2>
           </div>
-          <div className="p-5">
+          <div className="p-4 sm:p-5">
             {pteroAccount === null ? (
-              <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin" />
-                <span className="text-sm">Загрузка...</span>
+              <div className="flex items-center justify-center gap-2 py-6 sm:py-8 text-muted-foreground">
+                <Loader2 className="size-4 sm:size-5 animate-spin" />
+                <span className="text-xs sm:text-sm">Загрузка...</span>
               </div>
             ) : !pteroAccount.linked ? (
-              <div className="text-center py-6">
-                <div className="size-16 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-4">
-                  <Link2 className="size-7 text-muted-foreground" />
+              <div className="text-center py-4 sm:py-6">
+                <div className="size-12 sm:size-16 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <Link2 className="size-6 sm:size-7 text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   Создайте аккаунт для доступа к панели управления серверами
                 </p>
                 <button
                   onClick={onCreatePteroAccount}
                   disabled={pteroLoading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-foreground px-6 py-2.5 text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-foreground px-5 sm:px-6 py-2.5 text-xs sm:text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50"
                 >
-                  {pteroLoading ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                  {pteroLoading ? <Loader2 className="size-3.5 sm:size-4 animate-spin" /> : <Plus className="size-3.5 sm:size-4" />}
                   Создать аккаунт
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/20 border border-border/30">
-                  <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Check className="size-6 text-primary" />
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-muted/20 border border-border/30">
+                  <div className="size-10 sm:size-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Check className="size-5 sm:size-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground">{pteroAccount.username}</p>
-                    <p className="text-sm text-muted-foreground truncate">{pteroAccount.email}</p>
+                    <p className="font-medium text-sm sm:text-base text-foreground truncate">{pteroAccount.username}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{pteroAccount.email}</p>
                   </div>
                   <a
                     href={process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://console.fluxor.solutions'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-foreground px-4 py-2 text-xs sm:text-sm font-medium text-background hover:bg-foreground/90 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
                   >
-                    <ExternalLink className="size-4" />
+                    <ExternalLink className="size-3.5 sm:size-4" />
                     Открыть
                   </a>
                 </div>

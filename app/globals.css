@@ -158,10 +158,30 @@
   html {
     font-size: 16px;
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     background-color: var(--background);
     color: var(--foreground);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Mobile touch improvements */
+  @media (max-width: 768px) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    input, textarea, select {
+      font-size: 16px;
+    }
   }
 }
 
@@ -434,8 +454,64 @@ img {
   -o-user-drag: none;
   user-drag: none;
   pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 a img {
   pointer-events: auto;
+}
+
+/* Защита SVG и иконок */
+svg, svg * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none;
+}
+
+button svg, a svg, [role="button"] svg {
+  pointer-events: auto;
+}
+
+/* Защита от копирования через контекстное меню */
+img::selection {
+  background: transparent;
+}
+
+img::-moz-selection {
+  background: transparent;
+}
+
+/* Mobile-specific utilities */
+@media (max-width: 768px) {
+  .mobile-menu-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .mobile-scroll-container {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Improved touch targets */
+@media (hover: none) and (pointer: coarse) {
+  button:not(:disabled) {
+    touch-action: manipulation;
+  }
+}
+
+/* Mobile viewport fix */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
 }

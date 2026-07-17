@@ -6,7 +6,7 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AuthModal } from "@/components/auth-modal"
-import { FileText, LogIn, HelpCircle, Wallet, Shield, ChevronDown, Server, Code, Cloud, LayoutDashboard } from "lucide-react"
+import { FileText, LogIn, HelpCircle, Wallet, Shield, ChevronDown, Server, Code, Cloud, LayoutDashboard, Menu, X } from "lucide-react"
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -36,6 +36,7 @@ export function Navbar() {
   const [authDisabled, setAuthDisabled] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const servicesRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -88,12 +89,13 @@ export function Navbar() {
   return (
     <>
       <nav className="fixed top-2 sm:top-4 left-1/2 z-50 -translate-x-1/2 w-[calc(100%-1rem)] sm:w-auto max-w-[calc(100%-1rem)] animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="flex items-center gap-3 sm:gap-8 rounded-xl sm:rounded-2xl border border-border bg-background/80 py-1.5 sm:py-2 px-3 sm:px-6 shadow-lg backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 sm:gap-8 rounded-xl sm:rounded-2xl border border-border bg-background/80 py-1.5 sm:py-2 px-3 sm:px-6 shadow-lg backdrop-blur-md">
           <Link href="/" className="flex items-center gap-1 sm:gap-1.5 hover:scale-105 transition-transform duration-200">
             <Image src="/logo.svg" alt="Fluxor" width={28} height={28} className="size-5 sm:size-7 brightness-0 dark:brightness-100" />
             <span className="font-heading text-sm sm:text-lg font-bold tracking-tight text-foreground">Fluxor</span>
           </Link>
 
+          {/* Desktop Menu */}
           <div className="hidden items-center gap-1 md:flex">
             <Link
               href="/client"
@@ -135,7 +137,7 @@ export function Navbar() {
               )}
             </div>
             <a
-              href="https://dsc.gg/avelonmy"
+              href="https://discord.gg/S39VPEzdyK"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground hover:scale-[1.02]"
@@ -151,18 +153,32 @@ export function Navbar() {
               FAQ
             </Link>
           </div>
+          
+          {/* Mobile Actions */}
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center justify-center size-8 rounded-lg text-foreground transition-colors hover:bg-accent"
+              aria-label="Меню"
+            >
+              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </div>
 
-          {/* Разделитель */}
-          <div className="h-6 w-px bg-border/60" />
+          {/* Desktop Dividers and Theme Toggle */}
+          <div className="h-6 w-px bg-border/60 hidden md:block" />
 
-          <ThemeToggle />
+          <div className="hidden md:block">
+            <ThemeToggle />
+          </div>
 
           {user?.role === 'ADMIN' && (
             <>
-              <div className="h-6 w-px bg-border/60 hidden sm:block" />
+              <div className="h-6 w-px bg-border/60 hidden md:block" />
               <Link 
                 href="/admin"
-                className="flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-all duration-200 hover:bg-amber-500/20 hover:scale-[1.02]"
+                className="hidden md:flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-all duration-200 hover:bg-amber-500/20 hover:scale-[1.02]"
                 title="Админ панель"
               >
                 <Shield className="size-3.5 sm:size-4" />
@@ -171,12 +187,12 @@ export function Navbar() {
             </>
           )}
 
-          <div className="h-6 w-px bg-border/60" />
+          <div className="h-6 w-px bg-border/60 hidden md:block" />
 
           {user ? (
             <Link 
               href="/client"
-              className="flex items-center gap-1 sm:gap-1.5 rounded-lg bg-foreground px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-background transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
+              className="hidden md:flex items-center gap-1 sm:gap-1.5 rounded-lg bg-foreground px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-background transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Wallet className="size-3.5 sm:size-4" />
               <span className={`font-heading font-bold transition-opacity whitespace-nowrap ${authChecked ? "opacity-100" : "opacity-0"}`}>{user.balance.toFixed(0)} ₽</span>
@@ -188,7 +204,7 @@ export function Navbar() {
                   setIsAuthOpen(true)
                 }
               }}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+              className={`hidden md:flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
                 authDisabled
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-foreground text-background hover:opacity-90 hover:scale-[1.02] active:scale-[0.98]"
@@ -202,6 +218,116 @@ export function Navbar() {
           )}
         </div>
       </nav>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="absolute top-20 left-2 right-2 rounded-2xl border border-border bg-background/95 backdrop-blur-md shadow-xl animate-in slide-in-from-top-4 fade-in duration-300">
+            <div className="p-4 space-y-1">
+              <Link
+                href="/client"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <LayoutDashboard className="size-4" />
+                Дашборд
+              </Link>
+              <Link
+                href="/docs"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <FileText className="size-4" />
+                Документация
+              </Link>
+              
+              <div className="py-2">
+                <p className="px-4 text-xs font-medium text-muted-foreground mb-2">Услуги</p>
+                {services.map((service) => (
+                  <button
+                    key={service.type}
+                    onClick={() => {
+                      handleServiceClick(service.type)
+                      setMobileMenuOpen(false)
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors"
+                  >
+                    <service.icon className="size-4" />
+                    {service.name}
+                  </button>
+                ))}
+              </div>
+              
+              <a
+                href="https://dsc.gg/avelonmy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <DiscordIcon className="size-4" />
+                Поддержка
+              </a>
+              <Link
+                href="/#faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <HelpCircle className="size-4" />
+                FAQ
+              </Link>
+              
+              {user?.role === 'ADMIN' && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                >
+                  <Shield className="size-4" />
+                  Админ панель
+                </Link>
+              )}
+              
+              <div className="border-t border-border pt-3 mt-3">
+                {user ? (
+                  <Link
+                    href="/client/billing"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between rounded-xl px-4 py-3 bg-foreground text-background hover:opacity-90 transition-opacity"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Wallet className="size-4" />
+                      <span className="text-sm font-medium">Баланс</span>
+                    </div>
+                    <span className="font-heading font-bold text-sm">{user.balance.toFixed(0)} ₽</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      if (!authDisabled) {
+                        setIsAuthOpen(true)
+                      }
+                    }}
+                    disabled={authDisabled}
+                    className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                      authDisabled
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-foreground text-background"
+                    }`}
+                  >
+                    <LogIn className="size-4" />
+                    {authDisabled ? "Авторизация выключена" : "Войти"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AuthModal 
         isOpen={isAuthOpen} 

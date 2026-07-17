@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/auth-admin'
 import { adminLogger } from '@/lib/admin-logger'
+import { discordLogger } from '@/lib/discord-logger'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET
@@ -34,10 +35,12 @@ export async function PATCH(request: NextRequest) {
     // Получаем ID админа из токена
     const token = request.cookies.get('auth-token')?.value
     let adminId = 'unknown'
+    let adminUser = null
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as { userId: string }
         adminId = decoded.userId
+        adminUser = await prisma.user.findUnique({ where: { id: adminId } })
       } catch {}
     }
 
@@ -115,6 +118,29 @@ export async function PATCH(request: NextRequest) {
           : '💸 С вашего баланса были списаны средства администратором',
         isAddition: diff > 0,
       });
+    }
+    
+    // Discord логирование всех изменений пользователя
+    if (Object.keys(updateData).length > 0 && adminUser) {
+      const changes = []
+      if (balance !== undefined && balance !== oldUser.balance) changes.push(`Balance: ${oldUser.balance} → ${balance}`)
+      if (role !== undefined && role !== oldUser.role) changes.push(`Role: ${oldUser.role} → ${role}`)
+      if (name !== undefined && name !== oldUser.name) changes.push(`Name: ${oldUser.name} → ${name}`)
+      if (email !== undefined && email !== oldUser.email) changes.push(`Email: ${oldUser.email} → ${email}`)
+      if (password !== undefined) changes.push('Password changed')
+      if (emailVerified !== undefined && emailVerified !== oldUser.emailVerified) changes.push(`Email verified: ${oldUser.emailVerified} → ${emailVerified}`)
+
+      await discordLogger.logAdminAction({
+        adminId: adminUser.id,
+        adminName: adminUser.name || 'Admin',
+        adminEmail: adminUser.email,
+        action: 'Изменение пользователя',
+        targetType: 'user',
+        targetId: userId,
+        targetName: user.name || user.email,
+        details: changes.join('\n'),
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+      }).catch(err => console.error('Discord log error:', err));
     }
     
     return NextResponse.json(user)

@@ -15,6 +15,7 @@ import {
   getEmailDomain
 } from '@/lib/security'
 import { adminLogger } from '@/lib/admin-logger'
+import { discordLogger } from '@/lib/discord-logger'
 import { encryptPassword, generatePterodactylPassword } from '@/lib/pterodactyl-password'
 import { notifyUserRegistered } from '@/lib/discord-notifications'
 
@@ -164,6 +165,16 @@ export async function POST(request: NextRequest) {
 
       // Отправляем уведомление в Discord
       await notifyUserRegistered(user.id)
+
+      // Discord логирование
+      await discordLogger.logAuth({
+        type: 'register',
+        userId: user.id,
+        userName: sanitizedName || 'Unknown',
+        userEmail: normalizedEmail,
+        ipAddress: clientIp,
+        userAgent,
+      }).catch(err => console.error('Discord log error:', err))
 
       return NextResponse.json({ 
         success: true, 

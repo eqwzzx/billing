@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import { isAuthEnabled } from '@/lib/auth'
 import { checkRateLimit, rateLimitResponse, getClientIp, createAuditLog } from '@/lib/security'
 import { adminLogger } from '@/lib/admin-logger'
+import { discordLogger } from '@/lib/discord-logger'
 
 const JWT_SECRET = process.env.JWT_SECRET
 
@@ -90,6 +91,16 @@ export async function POST(request: NextRequest) {
     } else {
       await adminLogger.userLogin(user.id, clientIp, userAgent)
     }
+
+    // Discord логирование
+    await discordLogger.logAuth({
+      type: 'login',
+      userId: user.id,
+      userName: user.name || 'Unknown',
+      userEmail: user.email,
+      ipAddress: clientIp,
+      userAgent,
+    }).catch(err => console.error('Discord log error:', err))
 
     const response = NextResponse.json({ 
       success: true, 
