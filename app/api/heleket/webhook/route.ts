@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { HeleketWebhookPayload, verifyWebhookSign } from "@/lib/heleket"
 import { sendDiscordLog } from "@/lib/discord"
+import { trackMarketingEvent } from "@/lib/marketing"
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,6 +87,35 @@ export async function POST(request: NextRequest) {
         data: { balance: { increment: totalAmount } },
       })
 
+      // Обновляем статистику реферальной ссылки если есть
+      try {
+        const referralReg = await prisma.referralRegistration.findUnique({
+          where: { userId },
+        })
+        
+        if (referralReg) {
+          const updateData: any = {
+            totalDeposits: { increment: totalAmount },
+          }
+          
+          // Если это первое пополнение
+          if (!referralReg.hasDeposited) {
+            updateData.hasDeposited = true
+            updateData.firstDepositAt = new Date()
+          }
+          
+          await prisma.referralRegistration.update({
+            where: { userId },
+            data: updateData,
+          })
+          
+          console.log('[Heleket Webhook] Updated referral stats for user:', userId)
+        }
+      } catch (error) {
+        console.error('[Heleket Webhook] Error updating referral stats:', error)
+        // Не блокируем платёж из-за ошибки обновления реферальной статистики
+      }
+
       await prisma.transaction.updateMany({
         where: { externalId: uuid },
         data: {
@@ -107,6 +137,19 @@ export async function POST(request: NextRequest) {
         amount: totalAmount,
         method: 'Heleket (Crypto)',
         description: bonus > 0 ? `Бонус: +${bonus} ₽` : undefined,
+      })
+
+      // Отслеживаем маркетинговое событие
+      await trackMarketingEvent({
+        eventType: 'PAYMENT_SUCCESS',
+        userId,
+        amount: totalAmount,
+        metadata: {
+          method: 'Heleket',
+          transactionId: uuid,
+          currency,
+          bonus: bonus > 0 ? bonus : undefined,
+        },
       })
     }
 

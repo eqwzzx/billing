@@ -78,16 +78,16 @@ export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
           <span className="font-heading font-bold whitespace-nowrap">{user.balance.toFixed(0)} ₽</span>
         </Link>
 
-        {user.role === "ADMIN" && (
+        {(user.role === "ADMIN" || user.role === "PR_MANAGER") && (
           <>
             <div className="h-6 w-px bg-border/60 hidden lg:block" />
             <Link
-              href="/admin"
+              href={user.role === "PR_MANAGER" ? "/admin/marketing" : "/admin"}
               className="hidden lg:flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all duration-200 hover:from-amber-500/20 hover:to-orange-500/20 hover:scale-[1.02] active:scale-[0.98]"
-              title="Админ панель"
+              title={user.role === "PR_MANAGER" ? "Маркетинг" : "Админ панель"}
             >
               <Shield className="size-4" />
-              <span className="font-medium">Админ</span>
+              <span className="font-medium">{user.role === "PR_MANAGER" ? "Маркетинг" : "Админ"}</span>
             </Link>
           </>
         )}
@@ -159,14 +159,14 @@ export function ClientHeader({ user, onLogout }: ClientHeaderProps) {
                 <span className="font-heading font-bold text-sm">{user.balance.toFixed(0)} ₽</span>
               </Link>
 
-              {user.role === "ADMIN" && (
+              {(user.role === "ADMIN" || user.role === "PR_MANAGER") && (
                 <Link
-                  href="/admin"
+                  href={user.role === "PR_MANAGER" ? "/admin/marketing" : "/admin"}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 rounded-xl px-4 py-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
                 >
                   <Shield className="size-4" />
-                  <span className="text-sm font-medium">Админ панель</span>
+                  <span className="text-sm font-medium">{user.role === "PR_MANAGER" ? "Маркетинг" : "Админ панель"}</span>
                 </Link>
               )}
 

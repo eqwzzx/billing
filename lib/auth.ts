@@ -14,7 +14,7 @@ const getJwtSecret = (): string => {
 export interface AuthUser {
   id: string
   email: string
-  role: 'USER' | 'ADMIN'
+  role: 'USER' | 'ADMIN' | 'PR_MANAGER'
 }
 
 export async function isAuthEnabled(): Promise<boolean> {
@@ -51,7 +51,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
     return {
       id: decoded.userId,
       email: decoded.email,
-      role: decoded.role as 'USER' | 'ADMIN',
+      role: decoded.role as 'USER' | 'ADMIN' | 'PR_MANAGER',
     }
   } catch {
     return null

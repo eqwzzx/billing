@@ -9,6 +9,7 @@ import {
 import { sendDiscordLog } from '@/lib/discord'
 import { adminLogger } from '@/lib/admin-logger'
 import { generatePterodactylPassword, encryptPassword, decryptPassword } from '@/lib/pterodactyl-password'
+import { applyFirstOrderDiscount, markFirstOrderDiscountUsed, trackMarketingEvent } from '@/lib/marketing'
 
 export async function POST(request: NextRequest) {
   try {
@@ -170,7 +171,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const totalPrice = Math.max(0, plan.price + node.priceModifier - discount)
+    let basePrice = plan.price + node.priceModifier - discount
+    let totalPrice = basePrice
+    let firstOrderDiscountApplied = false
+    let firstOrderDiscountAmount = 0
+    let firstOrderDiscountPercent = 0
+
+    // Применяем скидку первого заказа, если пользователь имеет право
+    if (!plan.isFree) {
+      const discountResult = await applyFirstOrderDiscount(user.id, basePrice)
+      if (discountResult.applied) {
+        totalPrice = discountResult.finalPrice
+        firstOrderDiscountApplied = true
+        firstOrderDiscountAmount = discountResult.discountAmount
+        firstOrderDiscountPercent = discountResult.discountPercent
+        console.log('[Create Server] First order discount applied:', {
+          original: basePrice,
+          discount: firstOrderDiscountAmount,
+          final: totalPrice,
+          percent: firstOrderDiscountPercent,
+        })
+      }
+    }
+
+    totalPrice = Math.max(0, totalPrice)
 
     if (user.balance < totalPrice) {
       return NextResponse.json({ 
@@ -423,14 +447,24 @@ export async function POST(request: NextRequest) {
       data: { balance: { decrement: totalPrice } },
     })
 
+    // Помечаем что пользователь использовал скидку первого заказа
+    if (firstOrderDiscountApplied) {
+      await markFirstOrderDiscountUsed(userId)
+    }
+
+    let transactionDescription = `Сервер "${name}" - ${plan.name}`
+    if (firstOrderDiscountApplied) {
+      transactionDescription += ` (скидка первого заказа ${firstOrderDiscountPercent}%: -${firstOrderDiscountAmount.toFixed(0)} ₽)`
+    } else if (discount > 0) {
+      transactionDescription += ` (скидка ${discount} ₽)`
+    }
+
     await prisma.transaction.create({
       data: {
         userId,
         type: 'PAYMENT',
         amount: -totalPrice,
-        description: discount > 0 
-          ? `Сервер "${name}" - ${plan.name} (скидка ${discount} ₽)`
-          : `Сервер "${name}" - ${plan.name}`,
+        description: transactionDescription,
         serverId: server.id,
       },
     })
@@ -453,11 +487,31 @@ export async function POST(request: NextRequest) {
       amount: totalPrice,
       serverName: name,
       planName: plan.name,
-      description: discount > 0 ? `Скидка: ${discount} ₽` : undefined,
+      description: firstOrderDiscountApplied 
+        ? `Скидка первого заказа: ${firstOrderDiscountPercent}% (-${firstOrderDiscountAmount.toFixed(0)} ₽)` 
+        : discount > 0 
+          ? `Скидка: ${discount} ₽` 
+          : undefined,
     })
 
     // Логирование для админки
     await adminLogger.serverCreate(userId, server.id, name, plan.name)
+
+    // Tracking маркетингового события SERVER_CREATE
+    await trackMarketingEvent({
+      eventType: 'SERVER_CREATE',
+      userId,
+      serverId: server.id,
+      planId: plan.id,
+      amount: totalPrice,
+      metadata: {
+        serverName: name,
+        planName: plan.name,
+        nodeName: node.name,
+        firstOrderDiscount: firstOrderDiscountApplied,
+        discountAmount: firstOrderDiscountAmount,
+      },
+    })
 
     return NextResponse.json({ 
       success: true, 

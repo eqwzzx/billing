@@ -617,7 +617,7 @@ export default function AdminPage() {
           return
         }
         const data = await res.json()
-        if (data.user?.role !== 'ADMIN') {
+        if (data.user?.role !== 'ADMIN' && data.user?.role !== 'PR_MANAGER') {
           setIsAuthorized(false)
           router.push('/client')
           return

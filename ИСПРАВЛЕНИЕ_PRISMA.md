@@ -1,278 +1,233 @@
-# 🔧 ИСПРАВЛЕНИЕ ОШИБКИ PRISMA
+# Исправление проблемы с Prisma и таблицами
 
-## ❌ ОШИБКА
-
+## Проблема
 ```
-Error: @prisma/client did not initialize yet. 
-Please run "prisma generate" and try to import it again.
+The table `referrallink` does not exist in the current database.
 ```
 
-## 🎯 ПРИЧИНА
+Prisma ищет таблицу с неправильным именем (lowercase вместо правильного).
 
-Discord бот использует Prisma Client, но он не был сгенерирован в папке `discord-bot/`.
+## Возможные причины
 
-Prisma Client нужно генерировать отдельно для каждого проекта, который его использует.
+1. **Prisma Client не синхронизирован** с базой данных
+2. **Имя таблицы в базе отличается** от ожидаемого
+3. **Кэш Prisma** содержит старую информацию
 
 ---
 
-## ✅ РЕШЕНИЕ
+## Решение 1: Автоматическое исправление (РЕКОМЕНДУЕТСЯ)
 
-### Вариант 1: Автоматическое исправление (РЕКОМЕНДУЕТСЯ)
+### Запустите скрипт:
+```bash
+# Дважды кликните на файл:
+fix-prisma.bat
+```
 
-```powershell
+Этот скрипт:
+1. Удалит старый Prisma Client
+2. Синхронизирует схему с базой данных
+3. Перегенерирует Prisma Client
+
+### Затем перезапустите сервер:
+```bash
+npm run dev
+```
+
+---
+
+## Решение 2: Вручную через командную строку
+
+### Шаг 1: Проверьте имя таблицы в базе данных
+```bash
+mysql -u avelon -p123456 avelon -e "SHOW TABLES;"
+```
+
+Ищите таблицу с именем:
+- `ReferralLink` (правильное)
+- `referrallink` (неправильное, lowercase)
+
+### Шаг 2: Если таблица названа неправильно, переименуйте её
+```sql
+mysql -u avelon -p123456 avelon
+
+-- Переименовать таблицу если нужно
+RENAME TABLE referrallink TO ReferralLink;
+RENAME TABLE referralregistration TO ReferralRegistration;
+RENAME TABLE marketingevent TO MarketingEvent;
+RENAME TABLE firstorderdiscount TO FirstOrderDiscount;
+```
+
+### Шаг 3: Очистите кэш Prisma
+```bash
 cd C:\Users\Babur\Desktop\Avelon-Web-main
-.\ИСПРАВИТЬ_PRISMA.ps1
+
+# Удалите кэш
+rd /s /q node_modules\.prisma
+rd /s /q node_modules\@prisma\client
+rd /s /q .next
 ```
 
-Скрипт автоматически:
-1. Скопирует `schema.prisma` в `discord-bot/prisma/`
-2. Запустит `npx prisma generate`
-3. Установит `@prisma/client` (если нужно)
-4. Перезапустит бота
-5. Покажет логи
-
----
-
-### Вариант 2: Ручное исправление
-
+### Шаг 4: Перегенерируйте Prisma Client
 ```bash
-ssh root@77.91.100.68
-
-# Перейти в папку бота
-cd /var/www/billing/discord-bot
-
-# Создать папку prisma (если её нет)
-mkdir -p prisma
-
-# Скопировать schema.prisma из основного проекта
-cp ../prisma/schema.prisma ./prisma/schema.prisma
-
-# Сгенерировать Prisma Client
 npx prisma generate
+```
 
-# Убедиться что @prisma/client установлен
-npm install @prisma/client
-
-# Перезапустить бота
-pm2 restart fluxor-bot
-
-# Проверить логи
-pm2 logs fluxor-bot --lines 30
+### Шаг 5: Перезапустите сервер
+```bash
+npm run dev
 ```
 
 ---
 
-## 🧪 ПРОВЕРКА
+## Решение 3: Применить схему Prisma к базе данных
 
-После исправления проверьте команду в Discord:
+Если проблемы продолжаются, принудительно примените схему Prisma:
 
-```
-/balance
-```
+```bash
+cd C:\Users\Babur\Desktop\Avelon-Web-main
 
-**Ожидается:**
-- ✅ Команда работает
-- ✅ Показывает ваш баланс
-- ✅ Нет ошибок в логах
+# Применить схему Prisma (перезапишет таблицы!)
+npx prisma db push --force-reset
 
-Если вы админ, проверьте:
-```
-/addbalance user:admin@eqwzzx.wtf amount:100 reason:Тест
+# ⚠️ ВНИМАНИЕ: Это удалит все данные!
 ```
 
-**Ожидается:**
-- ✅ Баланс добавлен
-- ✅ Показан embed с информацией
-- ✅ Уведомление пользователю в ЛС
+**НЕ используйте этот метод если у вас есть важные данные в базе!**
 
 ---
 
-## 📊 ДИАГНОСТИКА
+## Решение 4: Проверка регистрозависимости MySQL
 
-### Проверить что Prisma Client сгенерирован:
+MariaDB/MySQL на Windows может быть регистронезависимым для имён таблиц.
 
-```bash
-ssh root@77.91.100.68
-
-# Проверить наличие сгенерированных файлов
-ls -la /var/www/billing/discord-bot/node_modules/.prisma/client/
-
-# Должны быть файлы:
-# - index.js
-# - default.js
-# - schema.prisma
-# и другие
+### Проверьте настройку:
+```sql
+mysql -u avelon -p123456 avelon -e "SHOW VARIABLES LIKE 'lower_case_table_names';"
 ```
 
-### Проверить что schema.prisma существует:
+**Значения:**
+- `0` - регистрозависимый (Linux/Unix)
+- `1` - регистронезависимый (Windows)
+- `2` - смешанный режим (Mac)
 
+### Если значение = 1 (Windows):
+Таблицы хранятся в lowercase, но обращение регистронезависимо.
+
+**Решение:** Prisma должен работать, но нужно перегенерировать клиент.
+
+---
+
+## Диагностика
+
+### 1. Проверьте что таблицы существуют:
 ```bash
-cat /var/www/billing/discord-bot/prisma/schema.prisma
-
-# Должен показать содержимое schema файла
+# Запустите скрипт проверки:
+check-tables.bat
 ```
 
-### Проверить что @prisma/client установлен:
-
+Или вручную:
 ```bash
-cd /var/www/billing/discord-bot
-npm list @prisma/client
+mysql -u avelon -p123456 avelon -e "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'avelon' AND TABLE_NAME LIKE '%Referral%';"
+```
 
-# Должно показать версию, например:
-# @prisma/client@5.x.x
+### 2. Проверьте schema.prisma:
+```bash
+# Найдите модель ReferralLink
+type prisma\schema.prisma | findstr /i "model ReferralLink"
+```
+
+Должно быть:
+```prisma
+model ReferralLink {
+  ...
+  @@map("ReferralLink")
+}
+```
+
+### 3. Проверьте Prisma Client:
+```bash
+# Посмотрите какие модели доступны
+npx prisma validate
 ```
 
 ---
 
-## 🔄 ЕСЛИ ОШИБКА ОСТАЛАСЬ
-
-### Шаг 1: Полная переустановка Prisma
+## Быстрое решение (всё в одной команде)
 
 ```bash
-ssh root@77.91.100.68
-cd /var/www/billing/discord-bot
+cd C:\Users\Babur\Desktop\Avelon-Web-main && rd /s /q node_modules\.prisma 2>nul && rd /s /q node_modules\@prisma\client 2>nul && rd /s /q .next 2>nul && npx prisma generate && echo "Готово! Запустите: npm run dev"
+```
 
-# Удалить node_modules и package-lock.json
-rm -rf node_modules package-lock.json
+---
 
-# Переустановить зависимости
-npm install
+## Альтернатива: Использовать @@map с lowercase
 
-# Сгенерировать Prisma Client
+Если ничего не помогает, измените схему Prisma чтобы использовать lowercase имена:
+
+### В файле `prisma/schema.prisma`:
+```prisma
+model ReferralLink {
+  // ... поля ...
+  
+  @@map("referrallink")  // Изменить с "ReferralLink" на "referrallink"
+}
+
+model ReferralRegistration {
+  // ... поля ...
+  
+  @@map("referralregistration")  // Изменить на lowercase
+}
+```
+
+### Затем:
+```bash
 npx prisma generate
-
-# Перезапустить бота
-pm2 restart fluxor-bot
+npm run dev
 ```
 
 ---
 
-### Шаг 2: Проверить DATABASE_URL
+## Проверка после исправления
 
+### Запустите сервер:
 ```bash
-cat /var/www/billing/discord-bot/.env | grep DATABASE_URL
+npm run dev
 ```
 
-**Должно быть:**
-```env
-DATABASE_URL="mysql://avelon:123456@localhost:3306/avelon"
+### В логах должно быть:
+```
+[API] POST /api/admin/referrals - Start
+[API] User authenticated: ...
+[API] Referral link created successfully: ...
+POST /api/admin/referrals 201 ✅
 ```
 
-**Важно:** `DATABASE_URL` должен быть одинаковым в обоих `.env`:
-- `/var/www/billing/.env`
-- `/var/www/billing/discord-bot/.env`
+**Без ошибки** `The table referrallink does not exist`!
 
 ---
 
-### Шаг 3: Проверить что база данных доступна
+## Если всё ещё не работает
 
+### Пришлите результаты этих команд:
+
+1. **Список таблиц:**
 ```bash
-mysql -u avelon -p avelon -e "SHOW TABLES;"
-
-# Должен показать список таблиц, включая User, Payment, AdminLog
+mysql -u avelon -p123456 avelon -e "SHOW TABLES;"
 ```
 
----
-
-## ⚠️ ПРЕДУПРЕЖДЕНИЕ: "ephemeral" deprecated
-
-Вы также видите предупреждение:
-```
-Warning: Supplying "ephemeral" for interaction response options is deprecated. 
-Utilize flags instead.
+2. **Информация о таблице:**
+```bash
+mysql -u avelon -p123456 avelon -e "SHOW CREATE TABLE ReferralLink\G"
 ```
 
-Это **не критично**, команды работают. Это просто предупреждение о устаревшем синтаксисе.
-
-**Исправление (опционально):**
-
-Измените в файлах команд:
-
-**БЫЛО:**
-```javascript
-await interaction.deferReply({ ephemeral: true });
+3. **Настройка регистра:**
+```bash
+mysql -u avelon -p123456 -e "SHOW VARIABLES LIKE 'lower_case_table_names';"
 ```
 
-**СТАЛО:**
-```javascript
-import { InteractionResponseFlags } from 'discord.js';
-await interaction.deferReply({ 
-  flags: InteractionResponseFlags.Ephemeral 
-});
+4. **Версия MySQL/MariaDB:**
+```bash
+mysql -u avelon -p123456 -e "SELECT VERSION();"
 ```
 
-Но это можно сделать позже, не критично для работы.
-
----
-
-## 📚 ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ
-
-### Почему нужно генерировать Prisma Client отдельно?
-
-Prisma Client генерируется на основе `schema.prisma` и устанавливается в `node_modules/.prisma/client/`.
-
-Каждый проект (веб-приложение и Discord бот) имеет свой `node_modules`, поэтому нужно генерировать отдельно:
-
-```
-/var/www/billing/
-├── node_modules/           ← Prisma для веб-приложения
-├── .prisma/
-└── discord-bot/
-    ├── node_modules/       ← Prisma для бота (нужно сгенерировать!)
-    └── .prisma/
-```
-
-### Что делает `npx prisma generate`?
-
-1. Читает `prisma/schema.prisma`
-2. Генерирует TypeScript/JavaScript клиент
-3. Устанавливает его в `node_modules/.prisma/client/`
-4. Создаёт типы и API для работы с базой данных
-
----
-
-## ✅ ИТОГОВЫЙ ЧЕК-ЛИСТ
-
-После исправления проверьте:
-
-- [ ] `prisma/schema.prisma` существует в `discord-bot/`
-- [ ] `npx prisma generate` выполнен успешно
-- [ ] `@prisma/client` установлен в `package.json`
-- [ ] Файлы есть в `node_modules/.prisma/client/`
-- [ ] Бот перезапущен: `pm2 restart fluxor-bot`
-- [ ] `/balance` работает без ошибок
-- [ ] `/addbalance` работает для админов
-- [ ] Нет ошибок в `pm2 logs fluxor-bot`
-
----
-
-## 🚀 БЫСТРОЕ ИСПРАВЛЕНИЕ
-
-Просто запустите:
-
-```powershell
-.\ИСПРАВИТЬ_PRISMA.ps1
-```
-
-Скрипт всё сделает автоматически! ✨
-
----
-
-**📞 Если проблема не решилась:**
-
-1. Проверьте логи:
-   ```bash
-   pm2 logs fluxor-bot --lines 100
-   ```
-
-2. Проверьте что база данных работает:
-   ```bash
-   systemctl status mysql
-   ```
-
-3. Проверьте DATABASE_URL в `.env`:
-   ```bash
-   cat /var/www/billing/discord-bot/.env | grep DATABASE_URL
-   ```
-
-4. Попробуйте полную переустановку (см. "Шаг 1" выше)
+Это поможет точно определить проблему!

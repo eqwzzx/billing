@@ -1,197 +1,74 @@
-import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-const JWT_SECRET = process.env.JWT_SECRET
-if (!JWT_SECRET) {
-  console.error('CRITICAL: JWT_SECRET environment variable is not set!')
-}
-
-interface DecodedToken {
-  userId: string
-  role?: string
-}
-
-function isAdmin(request: NextRequest): boolean {
-  if (!JWT_SECRET) return false
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next()
   
-  const token = request.cookies.get('auth-token')?.value
-  if (!token) return false
+  // Извлекаем UTM параметры из URL
+  const searchParams = request.nextUrl.searchParams
+  const utmSource = searchParams.get('utm_source')
+  const utmMedium = searchParams.get('utm_medium')
+  const utmCampaign = searchParams.get('utm_campaign')
+  const utmContent = searchParams.get('utm_content')
+  const utmTerm = searchParams.get('utm_term')
+  const refCode = searchParams.get('ref')
   
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken
-    return decoded.role === 'ADMIN'
-  } catch {
-    return false
+  // Сохраняем UTM метки в cookies на 30 дней
+  const cookieMaxAge = 30 * 24 * 60 * 60 // 30 дней
+  const cookieOptions = {
+    maxAge: cookieMaxAge,
+    path: '/',
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
   }
-}
-
-function addSecurityHeaders(response: NextResponse): NextResponse {
-  response.headers.set('X-Content-Type-Options', 'nosniff')
-  response.headers.set('X-Frame-Options', 'DENY')
-  response.headers.set('X-XSS-Protection', '1; mode=block')
   
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  if (utmSource) {
+    response.cookies.set('utm_source', utmSource, cookieOptions)
+  }
   
-  // HSTS - требовать HTTPS на 1 год
-  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+  if (utmMedium) {
+    response.cookies.set('utm_medium', utmMedium, cookieOptions)
+  }
   
-  response.headers.set(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
-  )
+  if (utmCampaign) {
+    response.cookies.set('utm_campaign', utmCampaign, cookieOptions)
+  }
   
-  response.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=()'
-  )
+  if (utmContent) {
+    response.cookies.set('utm_content', utmContent, cookieOptions)
+  }
+  
+  if (utmTerm) {
+    response.cookies.set('utm_term', utmTerm, cookieOptions)
+  }
+  
+  if (refCode) {
+    response.cookies.set('ref_code', refCode, cookieOptions)
+  }
+  
+  // Создаём или получаем session ID
+  if (!request.cookies.get('session_id')) {
+    const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    response.cookies.set('session_id', sessionId, {
+      maxAge: 24 * 60 * 60, // 24 часа
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
+  }
   
   return response
 }
 
-export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fluxor.solutions'
-
-  if (
-    pathname.startsWith('/_next') ||
-    pathname === '/maintenance' ||
-    pathname.startsWith('/maintenance') ||
-    pathname.includes('.')
-  ) {
-    return addSecurityHeaders(NextResponse.next())
-  }
-
-  if (pathname.startsWith('/api')) {
-    const method = request.method
-    
-    if (pathname.startsWith('/api/admin')) {
-      if (!JWT_SECRET) {
-        console.error('[Middleware] JWT_SECRET not configured, blocking admin API access')
-        return NextResponse.json(
-          { error: 'Server configuration error' },
-          { status: 500 }
-        )
-      }
-      
-      const token = request.cookies.get('auth-token')?.value
-      
-      if (!token) {
-        return NextResponse.json(
-          { error: 'Unauthorized: Authentication required' },
-          { status: 401 }
-        )
-      }
-      
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role?: string }
-        
-        if (decoded.role !== 'ADMIN') {
-          console.warn(`[Middleware] Non-admin user attempted to access admin API: ${pathname}`)
-          return NextResponse.json(
-            { error: 'Forbidden: Admin access required' },
-            { status: 403 }
-          )
-        }
-      } catch (error) {
-        console.warn(`[Middleware] Invalid token for admin API access: ${pathname}`)
-        return NextResponse.json(
-          { error: 'Unauthorized: Invalid or expired token' },
-          { status: 401 }
-        )
-      }
-    }
-    
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      let origin = request.headers.get('origin')
-      const referer = request.headers.get('referer')
-      const forwardedHost = request.headers.get('x-forwarded-host')
-      const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
-      
-      if (!origin && forwardedHost) {
-        origin = `${forwardedProto}://${forwardedHost}`
-        console.log(`[Middleware] Reconstructed origin from CDN headers: ${origin}`)
-      }
-      
-      const webhookPaths = ['/api/heleket/', '/api/yoomoney/', '/api/crystalpay/', '/api/cron/']
-      const isWebhook = webhookPaths.some(path => pathname.startsWith(path))
-      
-      if (isWebhook) {
-        return addSecurityHeaders(NextResponse.next())
-      }
-      
-      if (origin) {
-        const allowedOrigins = [
-          baseUrl,
-          'https://fluxor.solutions',
-          'http://localhost:3000',
-          'http://127.0.0.1:3000'
-        ]
-        
-        // Строгое сравнение origin без startsWith для безопасности
-        const isAllowed = allowedOrigins.includes(origin)
-        
-        if (!isAllowed) {
-          console.warn(`[Middleware] Blocked request from origin: ${origin} for path: ${pathname}`)
-          console.warn(`[Middleware] Headers:`, {
-            origin,
-            referer,
-            host: request.headers.get('host'),
-            'x-forwarded-host': forwardedHost,
-            'x-forwarded-proto': forwardedProto
-          })
-          return new NextResponse('Forbidden', { status: 403 })
-        }
-      } else if (!referer) {
-        const allowedWithoutOrigin = ['/api/auth/login', '/api/auth/register', '/api/auth/me']
-        if (!allowedWithoutOrigin.includes(pathname)) {
-          console.warn(`[Middleware] Request without origin/referer to: ${pathname}`)
-        }
-      }
-    }
-    
-    return addSecurityHeaders(NextResponse.next())
-  }
-
-  const maintenanceMode = request.cookies.get('maintenance-mode')?.value === 'true'
-  
-  if (maintenanceMode && !pathname.startsWith('/admin')) {
-    const admin = isAdmin(request)
-    if (!admin) {
-      return NextResponse.redirect(new URL('/maintenance', baseUrl))
-    }
-  }
-
-  // Проверка блокировки будет в /api/auth/me и в layout компонентах
-  // Middleware не должен делать DB запросы (Edge Runtime ограничения)
-
-  // Защита админки
-  if (pathname.startsWith('/admin')) {
-    if (!JWT_SECRET) {
-      console.error('[Middleware] JWT_SECRET not configured, blocking admin access')
-      return NextResponse.redirect(new URL('/client', baseUrl))
-    }
-    
-    const token = request.cookies.get('auth-token')?.value
-
-    if (!token) {
-      return NextResponse.redirect(new URL('/client', baseUrl))
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken
-      
-      if (decoded.role !== 'ADMIN') {
-        return NextResponse.redirect(new URL('/client', baseUrl))
-      }
-    } catch {
-      return NextResponse.redirect(new URL('/client', baseUrl))
-    }
-  }
-
-  return addSecurityHeaders(NextResponse.next())
-}
-
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-  runtime: 'nodejs',
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 }

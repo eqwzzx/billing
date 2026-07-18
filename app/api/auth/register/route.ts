@@ -18,6 +18,7 @@ import { adminLogger } from '@/lib/admin-logger'
 import { discordLogger } from '@/lib/discord-logger'
 import { encryptPassword, generatePterodactylPassword } from '@/lib/pterodactyl-password'
 import { notifyUserRegistered } from '@/lib/discord-notifications'
+import { saveUTMToUser, trackMarketingEvent } from '@/lib/marketing'
 
 // Динамически импортируем pterodactyl функции только когда они нужны
 let pterodactylLib: any = null
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email, password, name } = body
+    const { email, password, name, referralCode } = body
 
     // Валидация email
     if (!email || typeof email !== 'string') {
@@ -105,6 +106,46 @@ export async function POST(request: NextRequest) {
     // Логируем регистрацию с нестандартным доменом
     if (!isTrustedDomain) {
       console.log(`[Register] Non-trusted domain registration: ${normalizedEmail} (${emailDomain})`)
+    }
+
+    // Проверяем реферальную ссылку
+    // Сначала проверяем параметр из тела запроса, затем из cookie
+    let referralLinkId: string | null = null
+    let refCodeToCheck = referralCode // Из тела запроса
+    
+    // Если не передан в теле, проверяем cookie
+    if (!refCodeToCheck) {
+      refCodeToCheck = request.cookies.get('ref_code')?.value
+      console.log('[Register] Referral code from cookie:', refCodeToCheck)
+    } else {
+      console.log('[Register] Referral code from body:', refCodeToCheck)
+    }
+    
+    if (refCodeToCheck && typeof refCodeToCheck === 'string') {
+      try {
+        const referralLink = await prisma.referralLink.findUnique({
+          where: { code: refCodeToCheck.toUpperCase() },
+        })
+        
+        console.log('[Register] Referral link found:', referralLink ? referralLink.id : 'not found')
+        
+        if (referralLink && referralLink.isActive) {
+          // Проверяем срок действия
+          if (!referralLink.expiresAt || new Date(referralLink.expiresAt) >= new Date()) {
+            referralLinkId = referralLink.id
+            console.log('[Register] Referral link is valid, will create registration')
+          } else {
+            console.log('[Register] Referral link expired')
+          }
+        } else {
+          console.log('[Register] Referral link inactive or not found')
+        }
+      } catch (error) {
+        console.error('[Register] Error checking referral code:', error)
+        // Не блокируем регистрацию из-за ошибки реферальной ссылки
+      }
+    } else {
+      console.log('[Register] No referral code provided')
     }
 
     // Проверяем настроен ли SMTP
@@ -163,6 +204,17 @@ export async function POST(request: NextRequest) {
       const userAgent = request.headers.get('user-agent') || 'unknown'
       await adminLogger.userRegister(user.id, normalizedEmail, clientIp, userAgent)
 
+      // Сохраняем UTM данные
+      await saveUTMToUser(user.id)
+
+      // Отслеживаем событие регистрации
+      await trackMarketingEvent({
+        eventType: 'REGISTRATION',
+        userId: user.id,
+        ipAddress: clientIp,
+        userAgent,
+      })
+
       // Отправляем уведомление в Discord
       await notifyUserRegistered(user.id)
 
@@ -175,6 +227,32 @@ export async function POST(request: NextRequest) {
         ipAddress: clientIp,
         userAgent,
       }).catch(err => console.error('Discord log error:', err))
+
+      // Создаём запись о реферальной регистрации если есть код
+      console.log('[Register] Checking referralLinkId:', referralLinkId)
+      
+      if (referralLinkId) {
+        try {
+          console.log('[Register] Attempting to create referral registration...')
+          console.log('[Register] Data:', { linkId: referralLinkId, userId: user.id, ipAddress: clientIp })
+          
+          await prisma.referralRegistration.create({
+            data: {
+              linkId: referralLinkId,
+              userId: user.id,
+              ipAddress: clientIp,
+              userAgent,
+            },
+          })
+          console.log('[Register] ✅ Referral registration created successfully for link:', referralLinkId)
+        } catch (error) {
+          console.error('[Register] ❌ Error creating referral registration:', error)
+          console.error('[Register] Error details:', error instanceof Error ? error.message : 'Unknown error')
+          // Не блокируем регистрацию из-за ошибки реферальной записи
+        }
+      } else {
+        console.log('[Register] ❌ No referralLinkId - skipping referral registration creation')
+      }
 
       return NextResponse.json({ 
         success: true, 

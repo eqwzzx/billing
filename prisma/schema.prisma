@@ -269,6 +269,14 @@ model User {
   bannedBy             String? // ID администратора
   banExpiresAt         DateTime? // Для временной блокировки
   banCount             Int                @default(0) // Счётчик блокировок
+  // Маркетинговые данные
+  utmSource            String? // Источник трафика
+  utmMedium            String? // Канал
+  utmCampaign          String? // Кампания
+  utmContent           String? // Контент
+  utmTerm              String? // Ключевое слово
+  referralLinkId       String? // ID реферальной ссылки
+  firstOrderDiscount   Boolean            @default(true) // Право на скидку первого заказа
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   servers              Server[]
@@ -283,7 +291,11 @@ model User {
   adminLogs            AdminLog[]         @relation("AdminLogs")
   banHistory           BanHistory[]       @relation("UserBans")
   appeals              BanAppeal[]
+  marketingEvents      MarketingEvent[]
 
+  @@index([utmSource])
+  @@index([utmCampaign])
+  @@index([referralLinkId])
   @@map("User")
 }
 
@@ -372,6 +384,7 @@ enum plan_category {
 enum user_role {
   USER
   ADMIN
+  PR_MANAGER
 }
 
 enum transaction_status {
@@ -699,4 +712,113 @@ model DiscordBotSettings {
   updatedAt DateTime @updatedAt
 
   @@map("DiscordBotSettings")
+}
+
+model ReferralLink {
+  id          String   @id @default(cuid())
+  code        String   @unique // Уникальный код ссылки (например: PROMO2024)
+  name        String // Название/описание ссылки
+  url         String   @unique // Полный URL ссылки
+  
+  // Статистика
+  views       Int      @default(0) // Количество переходов
+  
+  // Настройки
+  isActive    Boolean  @default(true) // Активна ли ссылка
+  expiresAt   DateTime? // Дата истечения (опционально)
+  
+  // Метаданные
+  createdBy   String? // ID админа, создавшего ссылку
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Связи
+  registrations ReferralRegistration[]
+  
+  @@index([code])
+  @@index([isActive])
+  @@map("referrallink")
+}
+
+model ReferralRegistration {
+  id          String   @id @default(cuid())
+  linkId      String // ID реферальной ссылки
+  userId      String   @unique // ID пользователя
+  
+  // Статистика пользователя
+  hasDeposited Boolean @default(false) // Пополнил ли баланс
+  totalDeposits Float  @default(0) // Общая сумма пополнений
+  
+  // Метаданные
+  ipAddress   String? // IP при регистрации
+  userAgent   String?  @db.Text // User Agent
+  registeredAt DateTime @default(now())
+  firstDepositAt DateTime? // Дата первого пополнения
+  
+  // Связи
+  link        ReferralLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  
+  @@index([linkId])
+  @@index([userId])
+  @@index([hasDeposited])
+  @@map("referralregistration")
+}
+
+model MarketingEvent {
+  id          String              @id @default(cuid())
+  userId      String?
+  sessionId   String? // Анонимный session ID
+  eventType   marketing_event_type
+  
+  // UTM данные
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  
+  // Реферальная ссылка
+  referralCode String?
+  
+  // Данные события
+  metadata    String?  @db.Text // JSON с дополнительными данными
+  amount      Float? // Для событий с суммой (оплата)
+  planId      String? // Для выбора тарифа
+  serverId    String? // Для создания/продления сервера
+  
+  // Метаданные
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+  
+  // Связи
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([utmSource])
+  @@index([utmCampaign])
+  @@index([createdAt])
+  @@map("MarketingEvent")
+}
+
+model FirstOrderDiscount {
+  id          String   @id @default(cuid())
+  isEnabled   Boolean  @default(true)
+  discountPercent Int   @default(50) // Процент скидки
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt
+  
+  @@map("FirstOrderDiscount")
+}
+
+enum marketing_event_type {
+  VIEW           // Просмотр страницы
+  REGISTRATION   // Регистрация
+  PLAN_SELECT    // Выбор тарифа
+  PAYMENT_START  // Начало оплаты
+  PAYMENT_SUCCESS // Успешная оплата
+  SERVER_CREATE  // Создание сервера
+  SERVER_RENEW   // Продление сервера
 }

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import { CrystalPayWebhookPayload, verifyWebhookSignature } from "@/lib/crystalpay"
 import { sendDiscordLog } from "@/lib/discord"
 import { notifyBalanceDeposit } from "@/lib/discord-notifications"
+import { trackMarketingEvent } from "@/lib/marketing"
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,6 +92,35 @@ export async function POST(request: NextRequest) {
         data: { balance: { increment: totalAmount } },
       })
 
+      // Обновляем статистику реферальной ссылки если есть
+      try {
+        const referralReg = await prisma.referralRegistration.findUnique({
+          where: { userId },
+        })
+        
+        if (referralReg) {
+          const updateData: any = {
+            totalDeposits: { increment: totalAmount },
+          }
+          
+          // Если это первое пополнение
+          if (!referralReg.hasDeposited) {
+            updateData.hasDeposited = true
+            updateData.firstDepositAt = new Date()
+          }
+          
+          await prisma.referralRegistration.update({
+            where: { userId },
+            data: updateData,
+          })
+          
+          console.log('[CrystalPay Webhook] Updated referral stats for user:', userId)
+        }
+      } catch (error) {
+        console.error('[CrystalPay Webhook] Error updating referral stats:', error)
+        // Не блокируем платёж из-за ошибки обновления реферальной статистики
+      }
+
       // Обновляем транзакцию
       const transaction = await prisma.transaction.updateMany({
         where: { externalId: id },
@@ -128,6 +158,18 @@ export async function POST(request: NextRequest) {
           method: 'CRYSTALPAY'
         })
       }
+
+      // Отслеживаем маркетинговое событие
+      await trackMarketingEvent({
+        eventType: 'PAYMENT_SUCCESS',
+        userId,
+        amount: totalAmount,
+        metadata: {
+          method: 'CrystalPay',
+          transactionId: id,
+          bonus: bonus > 0 ? bonus : undefined,
+        },
+      })
 
       return NextResponse.json({ success: true })
     }

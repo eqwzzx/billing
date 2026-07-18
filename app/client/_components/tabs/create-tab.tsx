@@ -68,6 +68,7 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
   const [selectedEggId, setSelectedEggId] = useState<string | null>(null)
   const [vdsCreating, setVdsCreating] = useState(false)
   const [vdsError, setVdsError] = useState<string | null>(null)
+  const [firstOrderDiscount, setFirstOrderDiscount] = useState<{ enabled: boolean; percent: number } | null>(null)
   const [serverName, setServerName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("MINECRAFT")
   const [vdsSubCategory, setVdsSubCategory] = useState<string>("PROMO") // Добавляем подкатегорию для VDS
@@ -141,6 +142,16 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
 
   useEffect(() => { fetch("/api/settings/global-discount").then(r => r.json()).then(d => setGlobalDiscount(d.discount || 0)).catch(() => {}) }, [])
   useEffect(() => {
+    // Загрузка настроек скидки первого заказа
+    if (user.firstOrderDiscount) {
+      fetch("/api/admin/marketing/discount").then(r => r.json()).then(d => {
+        if (d.isEnabled) {
+          setFirstOrderDiscount({ enabled: true, percent: d.discountPercent })
+        }
+      }).catch(() => {})
+    }
+  }, [user.firstOrderDiscount])
+  useEffect(() => {
     if (selectedCategory === "VDS") {
       setLoadingOs(true)
       fetch("/api/vds/os-images").then(r => r.json()).then(d => { if (Array.isArray(d)) { setVdsOsImages(d); if (d.length > 0 && !selectedOsId) setSelectedOsId(d[0].vmManagerId) } }).catch(() => {}).finally(() => setLoadingOs(false))
@@ -152,8 +163,19 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
   const selectedGamePlanData = selectedCategory !== "VDS" ? plans.find(p => p.id === selectedPlan) : null
   const selectedNodeData = nodes.find(n => n.id === selectedNode)
   const basePrice = selectedPlanData ? selectedPlanData.price + (selectedCategory !== "VDS" ? (selectedNodeData?.priceModifier || 0) : 0) : 0
-  const discount = globalDiscount > 0 ? Math.round(basePrice * (globalDiscount / 100)) : (promoResult?.valid ? promoResult.discount || 0 : 0)
-  const totalPrice = Math.max(0, basePrice - discount)
+  
+  // Применяем глобальную скидку или промокод
+  let discount = globalDiscount > 0 ? Math.round(basePrice * (globalDiscount / 100)) : (promoResult?.valid ? promoResult.discount || 0 : 0)
+  let priceAfterDiscount = Math.max(0, basePrice - discount)
+  
+  // Применяем скидку первого заказа (если доступна и тариф не бесплатный)
+  let firstOrderDiscountAmount = 0
+  const hasFirstOrderDiscount = user.firstOrderDiscount && firstOrderDiscount?.enabled && !selectedGamePlanData?.isFree && !selectedVdsPlanData?.isFree
+  if (hasFirstOrderDiscount && firstOrderDiscount) {
+    firstOrderDiscountAmount = Math.round(priceAfterDiscount * (firstOrderDiscount.percent / 100))
+  }
+  
+  const totalPrice = Math.max(0, priceAfterDiscount - firstOrderDiscountAmount)
 
   const availableEggsForPlan = selectedGamePlanData?.eggOptions?.length 
     ? selectedGamePlanData.eggOptions.map((opt: { egg: { id: string; name: string } | null }) => opt.egg).filter((e): e is { id: string; name: string } => !!e)
@@ -753,8 +775,22 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
                 <div className="space-y-2 mb-4 text-xs">
                   <div className="flex items-center justify-between"><span className="text-muted-foreground">Тариф</span><span className="font-medium">{formatPrice(basePrice, currency)}</span></div>
                   {discount > 0 && <div className="flex items-center justify-between text-emerald-500"><span>Скидка</span><span>-{formatPrice(discount, currency)}</span></div>}
+                  {hasFirstOrderDiscount && firstOrderDiscountAmount > 0 && (
+                    <div className="flex items-center justify-between text-blue-500">
+                      <span className="flex items-center gap-1">
+                        <Zap className="size-3" />
+                        Первый заказ -{firstOrderDiscount?.percent}%
+                      </span>
+                      <span>-{formatPrice(firstOrderDiscountAmount, currency)}</span>
+                    </div>
+                  )}
                   <div className="border-t border-border/50 pt-2"><div className="flex items-center justify-between"><span className="font-medium text-foreground">Итого</span><span className="font-bold text-xl text-foreground">{formatPrice(totalPrice, currency)}</span></div></div>
                 </div>
+                {hasFirstOrderDiscount && firstOrderDiscountAmount > 0 && (
+                  <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2.5 mb-3 text-xs">
+                    <p className="text-blue-600 dark:text-blue-400 font-medium">🎉 Скидка {firstOrderDiscount?.percent}% на первый заказ применена!</p>
+                  </div>
+                )}
                 <div className="rounded-lg bg-muted/30 p-2.5 mb-3 text-xs">
                   <div className="flex items-center justify-between"><span className="text-muted-foreground">Баланс</span><span className={`font-medium ${user.balance >= totalPrice ? "text-emerald-500" : "text-red-500"}`}>{formatPrice(user.balance, currency)}</span></div>
                   {user.balance < totalPrice && <p className="text-[10px] text-red-500 mt-1">Недостаточно средств</p>}

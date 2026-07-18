@@ -6,11 +6,11 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { 
   Settings, Users, Server, CreditCard, Database, 
   Home, Search, Activity, Cloud, Mail, LogOut, FileText,
-  HardDrive, Globe, Box, Menu, X
+  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp
 } from "lucide-react"
 import { useState } from "react"
 
-export type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "settings"
+export type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "referrals" | "settings"
 
 interface NavItem {
   id: Tab
@@ -38,7 +38,7 @@ export const navItems: NavItem[] = [
   { id: "status", icon: Activity, label: "Статус" },
   { id: "smtp", icon: Mail, label: "SMTP" },
   { id: "logs", icon: FileText, label: "Логи" },
-  { id: "settings", icon: Settings, label: "Настройки" },
+  { id: "referrals", icon: Link2, label: "Реферальные ссылки" },
 ]
 
 export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQuery }: AdminHeaderProps) {
@@ -69,6 +69,26 @@ export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQue
                 <span className="hidden xl:block">{item.label}</span>
               </button>
             ))}
+            
+            {/* Маркетинг как отдельная кнопка-ссылка */}
+            <Link
+              href="/admin/marketing"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <TrendingUp className="size-4" />
+              <span className="hidden xl:block">Маркетинг</span>
+            </Link>
+            
+            {/* Настройки как отдельная кнопка */}
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-colors ${
+                activeTab === "settings" ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
+            >
+              <Settings className="size-4" />
+              <span className="hidden xl:block">Настройки</span>
+            </button>
           </div>
           
           <div className="h-6 w-px bg-border mx-1 hidden lg:block" />
@@ -146,6 +166,32 @@ export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQue
                   <span>{item.label}</span>
                 </button>
               ))}
+              
+              {/* Маркетинг в мобильном меню */}
+              <Link
+                href="/admin/marketing"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <TrendingUp className="size-4" />
+                <span>Маркетинг</span>
+              </Link>
+              
+              {/* Настройки в мобильном меню */}
+              <button
+                onClick={() => {
+                  setActiveTab("settings")
+                  setMobileMenuOpen(false)
+                }}
+                className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors ${
+                  activeTab === "settings"
+                    ? "bg-foreground text-background font-medium"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                }`}
+              >
+                <Settings className="size-4" />
+                <span>Настройки</span>
+              </button>
               
               {/* Mobile Bottom Actions */}
               <div className="border-t border-border pt-3 mt-3 space-y-2">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
 import { sendDiscordLog } from '@/lib/discord'
+import { trackMarketingEvent } from '@/lib/marketing'
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,6 +92,21 @@ export async function POST(request: NextRequest) {
       amount: renewalCost,
       serverName: server.name,
       planName: server.plan.name,
+    })
+
+    // Tracking маркетингового события SERVER_RENEW
+    await trackMarketingEvent({
+      eventType: 'SERVER_RENEW',
+      userId: user.id,
+      serverId: server.id,
+      planId: server.plan.id,
+      amount: renewalCost,
+      metadata: {
+        serverName: server.name,
+        planName: server.plan.name,
+        nodeName: server.node?.name,
+        daysExtended: 30,
+      },
     })
 
     return NextResponse.json({ 

@@ -12,6 +12,7 @@ import { AuthModal } from "@/components/auth-modal"
 import { HeroContainer } from "@/components/hero-container"
 import { FoldersAnimation } from "@/components/folders-animation"
 import { Testimonials } from "@/components/testimonials"
+import { ReferralTracker } from "@/app/_components/referral-tracker"
 
 function HomeContent() {
   const searchParams = useSearchParams()
@@ -47,6 +48,9 @@ function HomeContent() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-background">
+      {/* Referral Tracker - отслеживание переходов по реферальным ссылкам */}
+      <ReferralTracker />
+      
       {/* Background lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <svg className="absolute inset-0 w-full h-full opacity-[0.04] dark:opacity-[0.03]" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">

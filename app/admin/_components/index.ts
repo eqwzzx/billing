@@ -7,6 +7,7 @@ export { AdminServersTable, RecentServersTable } from "./admin-servers-table"
 export { AdminPaymentsTable } from "./admin-payments-table"
 export { AdminLogsTable } from "./admin-logs-table"
 export { AdminLayout } from "./admin-layout"
+export { AdminReferralsTable } from "./admin-referrals-table"
 
 // Re-export types
 export type { Tab as AdminTab } from "./admin-header"
