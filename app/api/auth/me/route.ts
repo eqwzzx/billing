@@ -65,6 +65,13 @@ export async function GET(request: NextRequest) {
         banExpiresAt: true,
         banCount: true,
         createdAt: true,
+        // Marketing fields
+        firstOrderDiscount: true,
+        utmSource: true,
+        utmMedium: true,
+        utmCampaign: true,
+        utmTerm: true,
+        utmContent: true,
         // Discord fields - ВАЖНО для сохранения привязки после перезагрузки
         discordId: true,
         discordUsername: true,

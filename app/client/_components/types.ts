@@ -31,6 +31,13 @@ export interface User {
   bannedAt?: string | null
   banExpiresAt?: string | null
   banCount?: number
+  // Marketing fields
+  firstOrderDiscount?: boolean
+  utmSource?: string | null
+  utmMedium?: string | null
+  utmCampaign?: string | null
+  utmTerm?: string | null
+  utmContent?: string | null
 }
 
 export interface ServerData {
