@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
           name: sanitizedName,
           emailVerified: isTrustedDomain, // Доверенные домены сразу верифицированы
           pterodactylPassword,
+          firstOrderDiscount: true, // 🎯 Все новые пользователи получают скидку первого заказа
         },
       })
 

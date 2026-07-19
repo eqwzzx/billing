@@ -128,7 +128,6 @@ function HomeContent() {
                   <h3 className="font-heading text-base sm:text-xl font-bold text-white mb-1.5 sm:mb-2">Защита от DDoS</h3>
                   <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
                     Многоуровневая защита фильтрует вредоносный трафик. Ваши игроки заходят без проблем, а боты остаются за бортом. 
-                    Разрабатываем собственную систему защиты IT-GUARD.FUN - скоро будет готова!
                   </p>
                 </div>
               </div>

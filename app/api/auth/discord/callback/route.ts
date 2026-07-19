@@ -169,6 +169,7 @@ async function handleDiscordLogin(request: NextRequest, discordUser: DiscordUser
         emailVerified: true, // Discord email уже подтвержден
         balance: 0,
         role: 'USER',
+        firstOrderDiscount: true, // 🎯 Все новые пользователи получают скидку первого заказа
       },
     });
 

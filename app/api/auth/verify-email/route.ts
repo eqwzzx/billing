@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
         name: pending.name,
         emailVerified: true,
         pterodactylPassword: encryptPassword(pterodactylPassword),
+        firstOrderDiscount: true, // 🎯 Все новые пользователи получают скидку первого заказа
       },
     })
 

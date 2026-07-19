@@ -159,8 +159,12 @@ export function AdminUsersTable({
                 )}
               </div>
               <div>
-                <span className={`text-xs px-2 py-1 rounded font-medium ${user.role === 'ADMIN' ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
-                  {user.role}
+                <span className={`text-xs px-2 py-1 rounded font-medium ${
+                  user.role === 'ADMIN' ? 'bg-red-500/20 text-red-500' : 
+                  user.role === 'PR_MANAGER' ? 'bg-orange-500/20 text-orange-500' : 
+                  'bg-emerald-500/20 text-emerald-500'
+                }`}>
+                  {user.role === 'PR_MANAGER' ? 'PR' : user.role}
                 </span>
               </div>
             </div>
@@ -283,8 +287,9 @@ export function AdminUsersTable({
                   onChange={(e) => setEditingUserForm({ ...editingUserForm, role: e.target.value })}
                   className="w-full px-4 py-2 rounded-xl bg-accent/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                  <option value="USER">USER</option>
-                  <option value="ADMIN">ADMIN</option>
+                  <option value="USER">USER - Пользователь</option>
+                  <option value="PR_MANAGER">PR_MANAGER - Менеджер по маркетингу</option>
+                  <option value="ADMIN">ADMIN - Администратор</option>
                 </select>
               </div>
               

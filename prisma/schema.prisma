@@ -734,6 +734,7 @@ model ReferralLink {
   
   // Связи
   registrations ReferralRegistration[]
+  views_records ReferralView[] // Записи просмотров
   
   @@index([code])
   @@index([isActive])
@@ -762,6 +763,28 @@ model ReferralRegistration {
   @@index([userId])
   @@index([hasDeposited])
   @@map("referralregistration")
+}
+
+model ReferralView {
+  id          String   @id @default(cuid())
+  linkId      String // ID реферальной ссылки
+  
+  // Данные для отслеживания уникальности
+  ipAddress   String? // IP адрес
+  fingerprint String? // Browser fingerprint
+  userAgent   String?  @db.Text // User Agent
+  
+  // Метаданные
+  viewedAt    DateTime @default(now())
+  
+  // Связи
+  link        ReferralLink @relation(fields: [linkId], references: [id], onDelete: Cascade, map: "referralview_linkId_fkey")
+  
+  @@index([linkId])
+  @@index([ipAddress])
+  @@index([fingerprint])
+  @@index([viewedAt])
+  @@map("referralview")
 }
 
 model MarketingEvent {

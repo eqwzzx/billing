@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Получаем базовый URL сайта
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://fluxor.solutions'
     const url = `${baseUrl}?ref=${code.toUpperCase()}`
 
     console.log('[API] Creating referral link with data:', {
