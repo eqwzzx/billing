@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireAuth(req)
     if (user.role !== 'ADMIN' && user.role !== 'PR_MANAGER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { searchParams } = new URL(req.url)

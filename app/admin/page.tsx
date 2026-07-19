@@ -11,7 +11,7 @@ import {
   CheckCircle, XCircle, Plus, Trash2, Edit, Save, X, Eye, EyeOff,
   Globe, Cpu, HardDrive, MemoryStick, Link2, Unlink, Home, Search,
   Zap, Shield, LogOut, Wallet, AlertCircle,
-  Activity, Cloud, Mail, FileText, BarChart3, Heart, Target
+  Activity, Cloud, Mail, FileText, BarChart3, Heart, Target, TrendingUp, ArrowRight
 } from "lucide-react"
 import { SettingsTab } from "@/components/admin/settings-tab"
 import { CustomSelect } from "@/components/admin/custom-select"
@@ -1077,6 +1077,29 @@ export default function AdminPage() {
                 <p className="text-xl font-bold text-foreground">{servers.filter(s => s.status === 'SUSPENDED').length}</p>
               </div>
             </div>
+
+            {/* Быстрые ссылки для ADMIN и PR_MANAGER */}
+            {(isAuthorized && (users.find(u => u.role === 'ADMIN' || u.role === 'PR_MANAGER'))) && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Link href="/admin/marketing">
+                  <div className="relative overflow-hidden border border-border/40 bg-card/50 backdrop-blur-sm rounded-xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/5 hover:border-orange-500/50 hover:-translate-y-1 group cursor-pointer">
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-orange-600/10 text-orange-500 group-hover:scale-110 transition-transform">
+                          <TrendingUp className="size-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-semibold text-lg">Маркетинг</h3>
+                          <p className="text-sm text-muted-foreground">Аналитика и продвижение</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="size-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            )}
 
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">

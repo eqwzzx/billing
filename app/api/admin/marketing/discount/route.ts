@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 
-// GET - Получить настройки скидки первого заказа
+// GET - Получить настройки скидки первого заказа (доступно всем авторизованным пользователям)
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAuth(req)
-    if (user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Только проверяем что пользователь авторизован, без проверки роли
+    await requireAuth(req)
 
     const discount = await prisma.firstOrderDiscount.findFirst()
     
