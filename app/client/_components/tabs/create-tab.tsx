@@ -144,11 +144,19 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
   useEffect(() => {
     // Загрузка настроек скидки первого заказа
     if (user.firstOrderDiscount) {
-      fetch("/api/admin/marketing/discount").then(r => r.json()).then(d => {
+      fetch("/api/marketing/discount").then(r => r.json()).then(d => {
+        console.log('[CreateTab] First order discount response:', d)
         if (d.isEnabled) {
           setFirstOrderDiscount({ enabled: true, percent: d.discountPercent })
+          console.log('[CreateTab] First order discount enabled:', d.discountPercent + '%')
+        } else {
+          console.log('[CreateTab] First order discount not enabled:', d.message || 'Unknown reason')
         }
-      }).catch(() => {})
+      }).catch((err) => {
+        console.error('[CreateTab] Error loading first order discount:', err)
+      })
+    } else {
+      console.log('[CreateTab] User does not have firstOrderDiscount flag')
     }
   }, [user.firstOrderDiscount])
   useEffect(() => {
