@@ -85,25 +85,9 @@ export async function POST(req: NextRequest) {
     console.log('[Referral] ⚠️  Unknown referral code:', refCode)
     
     return NextResponse.json({ 
-      success: true, 
-      duplicate: false,
-      type: 'unknown',
-      message: 'Unknown referral code - not tracked'
-    })
-        success: true, 
-        duplicate: false,
-        message: 'Personal referral code recognized',
-        type: 'personal_code'
-      })
-    }
-
-    // Код не найден ни в админских ссылках, ни у пользователей
-    console.log('[Referral] ❌ Referral code not found:', refCode)
-    return NextResponse.json({ 
       error: 'Referral code not found',
-      message: 'Code not recognized as admin link or personal code'
+      message: 'Code not recognized as admin referral link'
     }, { status: 404 })
-
   } catch (error) {
     console.error('[Referral] Error tracking view:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
