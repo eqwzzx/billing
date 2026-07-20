@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
         utmCampaign: true,
         utmTerm: true,
         utmContent: true,
+        referralCode: true,
         // Discord fields - ВАЖНО для сохранения привязки после перезагрузки
         discordId: true,
         discordUsername: true,

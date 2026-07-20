@@ -38,6 +38,8 @@ export interface User {
   utmCampaign?: string | null
   utmTerm?: string | null
   utmContent?: string | null
+  // Referral code
+  referralCode?: string | null
 }
 
 export interface ServerData {

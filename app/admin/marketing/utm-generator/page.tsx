@@ -93,9 +93,10 @@ export default function UTMGeneratorPage() {
     }
     checkAuth()
     
-    // Устанавливаем базовый URL
+    // Устанавливаем базовый URL из переменной окружения или текущего origin
     if (typeof window !== 'undefined') {
-      setBaseUrl(window.location.origin)
+      const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL
+      setBaseUrl(envUrl || window.location.origin)
     }
   }, [router])
 

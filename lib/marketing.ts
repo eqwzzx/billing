@@ -16,8 +16,8 @@ export interface UTMParams {
 /**
  * Сохраняет UTM метки в cookies
  */
-export function saveUTMToCookies(params: UTMParams) {
-  const cookieStore = cookies()
+export async function saveUTMToCookies(params: UTMParams) {
+  const cookieStore = await cookies()
   
   if (params.utm_source) {
     cookieStore.set('utm_source', params.utm_source, {
@@ -83,8 +83,8 @@ export function saveUTMToCookies(params: UTMParams) {
 /**
  * Получает UTM метки из cookies
  */
-export function getUTMFromCookies(): UTMParams {
-  const cookieStore = cookies()
+export async function getUTMFromCookies(): Promise<UTMParams> {
+  const cookieStore = await cookies()
   
   return {
     utm_source: cookieStore.get('utm_source')?.value,
@@ -99,8 +99,8 @@ export function getUTMFromCookies(): UTMParams {
 /**
  * Получает или создаёт session ID
  */
-export function getOrCreateSessionId(): string {
-  const cookieStore = cookies()
+export async function getOrCreateSessionId(): Promise<string> {
+  const cookieStore = await cookies()
   let sessionId = cookieStore.get('session_id')?.value
   
   if (!sessionId) {
@@ -131,8 +131,8 @@ export async function trackMarketingEvent(params: {
   userAgent?: string
 }) {
   try {
-    const utmParams = getUTMFromCookies()
-    const sessionId = getOrCreateSessionId()
+    const utmParams = await getUTMFromCookies()
+    const sessionId = await getOrCreateSessionId()
     
     await prisma.marketingEvent.create({
       data: {
@@ -253,7 +253,7 @@ export async function markFirstOrderDiscountUsed(userId: string) {
  */
 export async function saveUTMToUser(userId: string) {
   try {
-    const utmParams = getUTMFromCookies()
+    const utmParams = await getUTMFromCookies()
     
     await prisma.user.update({
       where: { id: userId },

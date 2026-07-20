@@ -276,6 +276,7 @@ model User {
   utmContent           String? // Контент
   utmTerm              String? // Ключевое слово
   referralLinkId       String? // ID реферальной ссылки
+  referralCode         String? // Персональный реферальный код пользователя
   firstOrderDiscount   Boolean            @default(true) // Право на скидку первого заказа
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
@@ -296,6 +297,7 @@ model User {
   @@index([utmSource])
   @@index([utmCampaign])
   @@index([referralLinkId])
+  @@index([referralCode])
   @@map("User")
 }
 

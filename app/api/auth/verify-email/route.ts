@@ -5,6 +5,28 @@ import { sendDiscordLog } from '@/lib/discord'
 import { checkRateLimit, rateLimitResponse, getClientIp, createAuditLog } from '@/lib/security'
 import { encryptPassword, generatePterodactylPassword } from '@/lib/pterodactyl-password'
 
+// Генерация уникального реферального кода для пользователя
+async function generateUniqueReferralCode(email: string): Promise<string> {
+  const baseCode = email.split('@')[0].toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000) // 4-значное число
+  let code = `${baseCode}${randomSuffix}`
+  
+  // Проверяем уникальность
+  let attempts = 0
+  while (attempts < 10) {
+    const existing = await prisma.user.findFirst({ where: { referralCode: code } })
+    if (!existing) {
+      return code
+    }
+    // Если код занят, генерируем новый
+    code = `${baseCode}${Math.floor(1000 + Math.random() * 9000)}`
+    attempts++
+  }
+  
+  // Если не удалось за 10 попыток, используем случайный код
+  return `USER${Date.now().toString().slice(-8)}`
+}
+
 // Динамически импортируем pterodactyl функции только когда они нужны
 let pterodactylLib: any = null
 async function loadPterodactyl() {
@@ -70,6 +92,8 @@ export async function POST(request: NextRequest) {
 
     // Создаём пользователя
     const pterodactylPassword = generatePterodactylPassword()
+    const userReferralCode = await generateUniqueReferralCode(normalizedEmail)
+    
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
@@ -78,6 +102,7 @@ export async function POST(request: NextRequest) {
         emailVerified: true,
         pterodactylPassword: encryptPassword(pterodactylPassword),
         firstOrderDiscount: true, // 🎯 Все новые пользователи получают скидку первого заказа
+        referralCode: userReferralCode, // Генерируем уникальный реферальный код
       },
     })
 

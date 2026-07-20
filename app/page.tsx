@@ -13,6 +13,7 @@ import { HeroContainer } from "@/components/hero-container"
 import { FoldersAnimation } from "@/components/folders-animation"
 import { Testimonials } from "@/components/testimonials"
 import { ReferralTracker } from "@/app/_components/referral-tracker"
+import { UTMTracker } from "@/app/_components/utm-tracker"
 
 function HomeContent() {
   const searchParams = useSearchParams()
@@ -50,6 +51,9 @@ function HomeContent() {
     <main className="relative min-h-screen overflow-hidden bg-background">
       {/* Referral Tracker - отслеживание переходов по реферальным ссылкам */}
       <ReferralTracker />
+      
+      {/* UTM Tracker - отслеживание UTM параметров для маркетинговой аналитики */}
+      <UTMTracker />
       
       {/* Background lines */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
