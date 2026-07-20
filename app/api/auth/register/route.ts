@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     if (!smtpConfigured) {
       const hashedPassword = await bcrypt.hash(password, 12)
       const pterodactylPassword = encryptPassword(password)
-      const userReferralCode = await generateUniqueReferralCode(normalizedEmail)
+      // const userReferralCode = await generateUniqueReferralCode(normalizedEmail) // Убрано
       
       const user = await prisma.user.create({
         data: {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
           emailVerified: isTrustedDomain, // Доверенные домены сразу верифицированы
           pterodactylPassword,
           firstOrderDiscount: true, // 🎯 Все новые пользователи получают скидку первого заказа
-          referralCode: userReferralCode, // Генерируем уникальный реферальный код
+          // referralCode: userReferralCode, // Убрано - не используется
         },
       })
 

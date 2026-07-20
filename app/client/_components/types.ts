@@ -38,8 +38,8 @@ export interface User {
   utmCampaign?: string | null
   utmTerm?: string | null
   utmContent?: string | null
-  // Referral code
-  referralCode?: string | null
+  // Referral link ID (admin-created referral links)
+  // referralCode?: string | null // Убрано - не используется
 }
 
 export interface ServerData {

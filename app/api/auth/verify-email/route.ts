@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Создаём пользователя
     const pterodactylPassword = generatePterodactylPassword()
-    const userReferralCode = await generateUniqueReferralCode(normalizedEmail)
+    // const userReferralCode = await generateUniqueReferralCode(normalizedEmail) // Убрано
     
     const user = await prisma.user.create({
       data: {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         emailVerified: true,
         pterodactylPassword: encryptPassword(pterodactylPassword),
         firstOrderDiscount: true, // 🎯 Все новые пользователи получают скидку первого заказа
-        referralCode: userReferralCode, // Генерируем уникальный реферальный код
+        // referralCode: userReferralCode, // Убрано - не используется
       },
     })
 

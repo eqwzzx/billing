@@ -80,19 +80,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, views: link.views + 1, duplicate: false, type: 'admin_link' })
     }
 
-    // Если не нашли в админских ссылках, проверяем персональные коды пользователей
-    const user = await prisma.user.findFirst({
-      where: { referralCode: refCode.toUpperCase() },
-      select: { id: true, referralCode: true, email: true }
+    // Если не нашли в админских ссылках - это неизвестный код
+    // Персональные реферальные коды пользователей больше не поддерживаются
+    console.log('[Referral] ⚠️  Unknown referral code:', refCode)
+    
+    return NextResponse.json({ 
+      success: true, 
+      duplicate: false,
+      type: 'unknown',
+      message: 'Unknown referral code - not tracked'
     })
-
-    if (user) {
-      // Это персональный реферальный код пользователя
-      console.log('[Referral] ✅ Personal referral code view tracked for user:', user.email)
-      
-      // Для персональных кодов просто логируем, не храним каждый просмотр
-      // Реальный трекинг произойдет при регистрации нового пользователя
-      return NextResponse.json({ 
         success: true, 
         duplicate: false,
         message: 'Personal referral code recognized',
