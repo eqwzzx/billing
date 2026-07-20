@@ -6,7 +6,27 @@ import { requireAuth } from '@/lib/auth'
 export async function GET(req: NextRequest) {
   try {
     // Проверяем авторизацию
-    const user = await requireAuth(req)
+    const authUser = await requireAuth(req)
+
+    // Загружаем полные данные пользователя из БД, включая firstOrderDiscount
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        email: true,
+        firstOrderDiscount: true,
+      },
+    })
+
+    if (!user) {
+      return NextResponse.json({ 
+        isEnabled: false,
+        discountPercent: 0,
+        message: 'Пользователь не найден'
+      }, { status: 404 })
+    }
+
+    console.log('[Discount API] User:', user.email, 'firstOrderDiscount:', user.firstOrderDiscount)
 
     // Только пользователи с флагом firstOrderDiscount могут видеть настройки
     if (!user.firstOrderDiscount) {
@@ -19,6 +39,8 @@ export async function GET(req: NextRequest) {
 
     // Получаем настройки скидки из базы
     const discount = await prisma.firstOrderDiscount.findFirst()
+    
+    console.log('[Discount API] Discount settings:', discount)
     
     if (!discount || !discount.isEnabled) {
       return NextResponse.json({ 

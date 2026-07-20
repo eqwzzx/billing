@@ -12,7 +12,7 @@ echo ""
 cd /var/www/billing
 
 echo "Шаг 1: Остановка приложения..."
-pm2 stop avelon-web || true
+pm2 stop 0 || true
 
 echo ""
 echo "Шаг 2: Применение SQL миграций..."
