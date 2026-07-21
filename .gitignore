@@ -62,3 +62,5 @@ Avelon-Web-main/
 
 # Все PowerShell-скрипты
 *.ps1
+*.sh
+*.sql
