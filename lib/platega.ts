@@ -246,3 +246,162 @@ export async function createSubscription(
     nextChargeAt: result.nextChargeAt,
   }
 }
+
+/**
+ * Проверка возможности отмены транзакции
+ * GET /transaction/{id}/cancel-supported
+ */
+export interface CancelSupportedResponse {
+  supported: boolean
+  totalDeductUsdt: number
+  penaltyNativeAmount?: number | null
+  penaltyNativeCurrency?: string | null
+  penaltyUsdt?: number | null
+  penaltyConversionRate?: number | null
+  blockReason?: string | null
+}
+
+export async function checkCancelSupported(transactionId: string): Promise<CancelSupportedResponse> {
+  console.log("[Platega] Checking cancel supported:", transactionId)
+
+  const response = await fetch(`${API_URL}/transaction/${transactionId}/cancel-supported`, {
+    method: "GET",
+    headers: {
+      "Accept": "application/json",
+      "X-MerchantId": MERCHANT_ID,
+      "X-Secret": SECRET_KEY,
+    },
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("[Platega] Check cancel supported error:", response.status, errorText)
+    throw new Error(`Platega API error: ${response.status} ${errorText}`)
+  }
+
+  const result = await response.json() as CancelSupportedResponse
+  console.log("[Platega] Cancel supported response:", result)
+
+  return result
+}
+
+/**
+ * Отмена транзакции (возврат средств)
+ * POST /transaction/{id}/cancel
+ */
+export interface CancelTransactionResponse {
+  transactionId: string
+  accepted: boolean
+  manualControlRequired: boolean
+  message: string
+}
+
+export async function cancelTransaction(transactionId: string): Promise<CancelTransactionResponse> {
+  console.log("[Platega] Canceling transaction:", transactionId)
+
+  const response = await fetch(`${API_URL}/transaction/${transactionId}/cancel`, {
+    method: "POST",
+    headers: {
+      "Accept": "application/json",
+      "X-MerchantId": MERCHANT_ID,
+      "X-Secret": SECRET_KEY,
+    },
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("[Platega] Cancel transaction error:", response.status, errorText)
+    throw new Error(`Platega API error: ${response.status} ${errorText}`)
+  }
+
+  const result = await response.json() as CancelTransactionResponse
+  console.log("[Platega] Cancel transaction response:", result)
+
+  return result
+}
+
+/**
+ * Получение балансов мерчанта
+ * GET /v1/balances
+ */
+export interface PlategaBalance {
+  currency: string
+  amount: number
+  hold: number
+  available: number
+}
+
+export async function getBalances(): Promise<PlategaBalance[]> {
+  console.log("[Platega] Getting balances")
+
+  const response = await fetch(`${API_URL}/v1/balances`, {
+    method: "GET",
+    headers: {
+      "Accept": "application/json",
+      "X-MerchantId": MERCHANT_ID,
+      "X-Secret": SECRET_KEY,
+    },
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("[Platega] Get balances error:", response.status, errorText)
+    throw new Error(`Platega API error: ${response.status} ${errorText}`)
+  }
+
+  const result = await response.json()
+  console.log("[Platega] Balances response:", result)
+
+  return result as PlategaBalance[]
+}
+
+/**
+ * Экспорт транзакций
+ * GET /v1/transactions/export/{format}
+ */
+export type ExportFormat = "csv" | "excel" | "json"
+
+export interface ExportTransactionsParams {
+  from?: string // ISO date
+  to?: string // ISO date
+  status?: PaymentStatus
+  format: ExportFormat
+}
+
+export async function exportTransactions(params: ExportTransactionsParams): Promise<string> {
+  const queryParams = new URLSearchParams()
+  if (params.from) queryParams.append("from", params.from)
+  if (params.to) queryParams.append("to", params.to)
+  if (params.status) queryParams.append("status", params.status)
+
+  const endpoint = params.format === "excel" 
+    ? `/v1/transactions/export/excel` 
+    : params.format === "json"
+    ? `/v1/transactions/export/json`
+    : `/v1/transactions/export/csv`
+
+  const url = `${API_URL}${endpoint}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
+  
+  console.log("[Platega] Exporting transactions:", url)
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Accept": "application/json",
+      "X-MerchantId": MERCHANT_ID,
+      "X-Secret": SECRET_KEY,
+    },
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error("[Platega] Export transactions error:", response.status, errorText)
+    throw new Error(`Platega API error: ${response.status} ${errorText}`)
+  }
+
+  const result = await response.json()
+  console.log("[Platega] Export response:", result)
+
+  // API возвращает ссылку на файл
+  return result.url || result.downloadUrl || ""
+}

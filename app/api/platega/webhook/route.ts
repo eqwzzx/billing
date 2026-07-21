@@ -52,7 +52,12 @@ export async function POST(request: NextRequest) {
 
     // Обрабатываем успешный платёж
     if (status === "CONFIRMED") {
-      const paymentAmount = amount
+      // Platega возвращает сумму, которую заплатил клиент (с комиссией)
+      // Нужно вычислить сумму без комиссии, которую получаем мы
+      // Комиссия Platega ~8.5% (это комиссия платёжной системы, не наша)
+      // Формула: originalAmount = paidAmount / 1.085
+      const paidAmount = amount
+      const paymentAmount = Math.round(paidAmount / 1.085) // Сумма без комиссии Platega
 
       const user = await prisma.user.findUnique({ where: { id: userId } })
       if (!user) {

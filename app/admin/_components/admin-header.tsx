@@ -6,11 +6,11 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { 
   Settings, Users, Server, CreditCard, Database, 
   Home, Search, Activity, Cloud, Mail, LogOut, FileText,
-  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp
+  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp, Wallet
 } from "lucide-react"
 import { useState } from "react"
 
-export type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "referrals" | "settings"
+export type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "referrals" | "platega-payments" | "settings"
 
 interface NavItem {
   id: Tab
@@ -35,6 +35,7 @@ export const navItems: NavItem[] = [
   { id: "dedicated", icon: HardDrive, label: "Дедики" },
   { id: "domains", icon: Globe, label: "Домены" },
   { id: "storagebox", icon: Box, label: "StorageBox" },
+  { id: "platega-payments", icon: Wallet, label: "Platega" },
   { id: "status", icon: Activity, label: "Статус" },
   { id: "smtp", icon: Mail, label: "SMTP" },
   { id: "logs", icon: FileText, label: "Логи" },

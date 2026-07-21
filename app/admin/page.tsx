@@ -18,8 +18,10 @@ import { CustomSelect } from "@/components/admin/custom-select"
 import { StatusSelect } from "@/components/ui/status-select"
 import { AdminLogsTable } from "./_components/admin-logs-table"
 import { ServiceManager } from "./_components/service-manager"
+import { AdminUsersTable } from "./_components/admin-users-table"
+import { AdminPlategaPaymentsTable } from "./_components/admin-platega-payments-table"
 
-type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "settings"
+type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "platega-payments" | "settings"
 
 interface User {
   id: string
@@ -29,6 +31,9 @@ interface User {
   role: string
   pterodactylId: number | null
   emailVerified: boolean
+  banned: boolean
+  banType: string
+  banReason: string | null
   createdAt: string
   _count: { servers: number; transactions: number }
 }
@@ -226,6 +231,7 @@ export default function AdminPage() {
     { id: "dedicated" as Tab, icon: HardDrive, label: "Дедики" },
     { id: "domains" as Tab, icon: Globe, label: "Домены" },
     { id: "storagebox" as Tab, icon: HardDrive, label: "StorageBox" },
+    { id: "platega-payments" as Tab, icon: Wallet, label: "Platega" },
     { id: "status" as Tab, icon: Activity, label: "Статус" },
     { id: "smtp" as Tab, icon: Mail, label: "SMTP" },
     { id: "logs" as Tab, icon: FileText, label: "Логи" },
@@ -699,6 +705,61 @@ export default function AdminPage() {
     } catch { notify.error('Ошибка при верификации') }
   }
 
+  const handleBanUser = async (userId: string, reason: string, banType: string, expiresAt?: string) => {
+    try {
+      const r = await fetch(`/api/admin/users/${userId}/ban`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason, banType, expiresAt })
+      })
+      if (r.ok) {
+        notify.success('Пользователь заблокирован')
+        loadUsers()
+      } else {
+        const d = await r.json()
+        notify.error(d.error || 'Ошибка блокировки')
+      }
+    } catch {
+      notify.error('Ошибка блокировки')
+    }
+  }
+
+  const handleUnbanUser = async (userId: string) => {
+    try {
+      const r = await fetch(`/api/admin/users/${userId}/ban`, {
+        method: 'DELETE'
+      })
+      if (r.ok) {
+        notify.success('Пользователь разблокирован')
+        loadUsers()
+      } else {
+        const d = await r.json()
+        notify.error(d.error || 'Ошибка разблокировки')
+      }
+    } catch {
+      notify.error('Ошибка разблокировки')
+    }
+  }
+
+  const handleSaveUserWrapper = async (userId: string, data: { name?: string; email?: string; password?: string; balance?: number; role?: string; emailVerified?: boolean }) => {
+    try {
+      const r = await fetch('/api/admin/users', { 
+        method: 'PATCH', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ userId, ...data }) 
+      })
+      if (r.ok) { 
+        loadUsers()
+        notify.success('Пользователь обновлён')
+      } else {
+        const d = await r.json()
+        notify.error(d.error || 'Ошибка при обновлении')
+      }
+    } catch { 
+      notify.error('Ошибка при обновлении') 
+    }
+  }
+
   const savePlan = async (plan: Partial<Plan> & { id?: string; allowedEggIds?: string[] }) => {
     try {
       const r = await fetch('/api/admin/plans', { method: plan.id ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan) })
@@ -1128,92 +1189,17 @@ export default function AdminPage() {
         )}
 
         {activeTab === "users" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="font-heading text-2xl font-bold text-foreground">{users.filter(u => !searchQuery || u.email.toLowerCase().includes(searchQuery.toLowerCase()) || u.name?.toLowerCase().includes(searchQuery.toLowerCase())).length} пользователей</h1>
-                <p className="text-sm text-muted-foreground">Всего: {users.length}</p>
-              </div>
-              <button onClick={() => { loadUsers(); notify.success('Список пользователей обновлён') }} className="size-9 rounded-xl bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                <RefreshCw className="size-4" />
-              </button>
-            </div>
-
-            <div className="relative">
-              <Search className="size-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Поиск по email или имени..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 rounded-xl bg-accent/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-accent focus:ring-2 focus:ring-primary/50 transition-all"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              {users.filter(u => !searchQuery || u.email.toLowerCase().includes(searchQuery.toLowerCase()) || u.name?.toLowerCase().includes(searchQuery.toLowerCase())).map((user) => (
-                <div key={user.id} className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/30 transition-all group">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="size-9 rounded-lg flex items-center justify-center text-muted-foreground flex-shrink-0 border border-border">
-                      {user.role === 'ADMIN' ? <Shield className="size-4 text-muted-foreground" /> : <Users className="size-4 text-muted-foreground" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{user.name || user.email}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 mx-4 text-xs text-muted-foreground flex-shrink-0">
-                    <div className="flex items-center gap-1">
-                      <Wallet className="size-3.5 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{user.balance.toFixed(2)} ₽</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Server className="size-3.5 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{user._count.servers}</span>
-                    </div>
-                    {user.pterodactylId && (
-                      <div className="flex items-center gap-1">
-                        <Database className="size-3.5 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{user.pterodactylId}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1" title={user.emailVerified ? "Email подтвержден" : "Email не подтвержден"}>
-                      {user.emailVerified ? (
-                        <CheckCircle className="size-3.5 text-emerald-500" />
-                      ) : (
-                        <XCircle className="size-3.5 text-red-500" />
-                      )}
-                    </div>
-                    <div>
-                      <span className={`text-xs px-2 py-1 rounded font-medium ${user.role === 'ADMIN' ? 'bg-red-500/20 text-red-500' : 'bg-emerald-500/20 text-emerald-500'}`}>{user.role}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => handleEditUserOpen(user)} className="size-8 rounded-lg hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-all" title="Редактировать">
-                      <Edit className="size-4" />
-                    </button>
-                    {!user.emailVerified && (
-                      <button onClick={() => verifyUserEmail(user.id)} className="size-8 rounded-lg hover:bg-emerald-500/20 flex items-center justify-center text-muted-foreground hover:text-emerald-500 transition-all" title="Верифицировать email">
-                        <Mail className="size-4" />
-                      </button>
-                    )}
-                    <button onClick={() => deleteUser(user.id)} className="size-8 rounded-lg hover:bg-red-500/20 flex items-center justify-center text-muted-foreground hover:text-red-500 transition-all" title="Удалить">
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {users.filter(u => !searchQuery || u.email.toLowerCase().includes(searchQuery.toLowerCase()) || u.name?.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-              <div className="rounded-2xl border border-border bg-card px-5 py-12 text-center text-muted-foreground">
-                <Users className="size-12 mx-auto mb-3 opacity-50" />
-                <p>Пользователи не найдены</p>
-              </div>
-            )}
-          </div>
+          <AdminUsersTable
+            users={users}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onRefresh={loadUsers}
+            onDeleteUser={deleteUser}
+            onVerifyUser={verifyUserEmail}
+            onSaveUser={handleSaveUserWrapper}
+            onBanUser={handleBanUser}
+            onUnbanUser={handleUnbanUser}
+          />
         )}
 
         {activeTab === "servers" && (
@@ -2656,6 +2642,10 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeTab === "platega-payments" && (
+          <AdminPlategaPaymentsTable searchQuery={searchQuery} />
         )}
 
         {activeTab === "logs" && (

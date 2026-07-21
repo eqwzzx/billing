@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { 
   Users, Server, Database, Wallet, Shield, 
-  Edit, Trash2, RefreshCw, Search, Save, X, Eye, EyeOff, CheckCircle, XCircle
+  Edit, Trash2, RefreshCw, Search, Save, X, Eye, EyeOff, CheckCircle, XCircle, Ban, AlertCircle
 } from "lucide-react"
 import { notify } from "@/lib/notify"
 
@@ -15,6 +15,9 @@ interface User {
   role: string
   pterodactylId: number | null
   emailVerified: boolean
+  banned: boolean
+  banType: string
+  banReason: string | null
   createdAt: string
   _count: { servers: number; transactions: number }
 }
@@ -27,6 +30,8 @@ interface AdminUsersTableProps {
   onDeleteUser: (userId: string) => void
   onVerifyUser: (userId: string) => void
   onSaveUser: (userId: string, data: { name?: string; email?: string; password?: string; balance?: number; role?: string; emailVerified?: boolean }) => Promise<void>
+  onBanUser?: (userId: string, reason: string, banType: string, expiresAt?: string) => Promise<void>
+  onUnbanUser?: (userId: string) => Promise<void>
 }
 
 export function AdminUsersTable({ 
@@ -36,7 +41,9 @@ export function AdminUsersTable({
   onRefresh, 
   onDeleteUser,
   onVerifyUser,
-  onSaveUser 
+  onSaveUser,
+  onBanUser,
+  onUnbanUser
 }: AdminUsersTableProps) {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editingUserForm, setEditingUserForm] = useState({ 
@@ -48,6 +55,10 @@ export function AdminUsersTable({
     emailVerified: false
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [banModalUser, setBanModalUser] = useState<User | null>(null)
+  const [banReason, setBanReason] = useState("")
+  const [banType, setBanType] = useState<string>("PERM_BAN")
+  const [banExpiresAt, setBanExpiresAt] = useState("")
 
   const filteredUsers = users.filter(u => 
     !searchQuery || 
@@ -95,6 +106,43 @@ export function AdminUsersTable({
     let password = ''
     for (let i = 0; i < 12; i++) password += chars.charAt(array[i] % chars.length)
     return password
+  }
+
+  const handleBanClick = (user: User) => {
+    setBanModalUser(user)
+    setBanReason("")
+    setBanType("PERM_BAN")
+    setBanExpiresAt("")
+  }
+
+  const handleBanConfirm = async () => {
+    if (!banModalUser || !banReason.trim()) {
+      notify.error("Укажите причину блокировки")
+      return
+    }
+
+    if (onBanUser) {
+      await onBanUser(
+        banModalUser.id, 
+        banReason, 
+        banType,
+        banType === "TEMP_BAN" ? banExpiresAt : undefined
+      )
+    }
+
+    setBanModalUser(null)
+    setBanReason("")
+    onRefresh()
+  }
+
+  const handleUnban = async (userId: string) => {
+    if (!confirm("Разблокировать пользователя?")) return
+    
+    if (onUnbanUser) {
+      await onUnbanUser(userId)
+    }
+    
+    onRefresh()
   }
 
   return (
@@ -167,6 +215,12 @@ export function AdminUsersTable({
                   {user.role === 'PR_MANAGER' ? 'PR' : user.role}
                 </span>
               </div>
+              {user.banned && (
+                <div className="flex items-center gap-1" title={`Заблокирован: ${user.banReason || 'Без причины'}`}>
+                  <Ban className="size-3.5 text-red-500" />
+                  <span className="text-xs text-red-500 font-medium">BAN</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -184,6 +238,23 @@ export function AdminUsersTable({
                   title="Верифицировать email"
                 >
                   <CheckCircle className="size-4" />
+                </button>
+              )}
+              {user.banned ? (
+                <button 
+                  onClick={() => handleUnban(user.id)} 
+                  className="size-8 rounded-lg hover:bg-emerald-500/20 flex items-center justify-center text-red-500 hover:text-emerald-500 transition-all"
+                  title="Разблокировать"
+                >
+                  <CheckCircle className="size-4" />
+                </button>
+              ) : (
+                <button 
+                  onClick={() => handleBanClick(user)} 
+                  className="size-8 rounded-lg hover:bg-red-500/20 flex items-center justify-center text-muted-foreground hover:text-red-500 transition-all"
+                  title="Заблокировать"
+                >
+                  <Ban className="size-4" />
                 </button>
               )}
               <button 
@@ -323,6 +394,99 @@ export function AdminUsersTable({
               >
                 <Save className="size-4" />
                 Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban User Modal */}
+      {banModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                  <Ban className="size-5 text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Блокировка пользователя</h2>
+                  <p className="text-sm text-muted-foreground">{banModalUser.email}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setBanModalUser(null)} 
+                className="size-8 rounded-lg hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Тип блокировки</label>
+                <select
+                  value={banType}
+                  onChange={(e) => setBanType(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl bg-accent/50 text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                >
+                  <option value="WARNING">Предупреждение</option>
+                  <option value="TEMP_BAN">Временная блокировка</option>
+                  <option value="PERM_BAN">Постоянная блокировка</option>
+                </select>
+              </div>
+
+              {banType === "TEMP_BAN" && (
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Истекает (опционально)</label>
+                  <input
+                    type="datetime-local"
+                    value={banExpiresAt}
+                    onChange={(e) => setBanExpiresAt(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl bg-accent/50 text-foreground focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                  />
+                </div>
+              )}
+              
+              <div>
+                <label className="text-sm text-muted-foreground mb-1 block">Причина блокировки *</label>
+                <textarea
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Укажите причину блокировки..."
+                  rows={4}
+                  className="w-full px-4 py-2 rounded-xl bg-accent/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500/50 resize-none"
+                />
+              </div>
+
+              <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="size-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-500 mb-1">Внимание</p>
+                    <p className="text-xs text-muted-foreground">
+                      Заблокированный пользователь не сможет войти в систему. 
+                      Все его серверы будут приостановлены.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => setBanModalUser(null)}
+                className="flex-1 px-4 py-2 rounded-xl bg-accent text-foreground hover:bg-accent/80 transition-colors"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleBanConfirm}
+                disabled={!banReason.trim()}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Ban className="size-4" />
+                Заблокировать
               </button>
             </div>
           </div>
