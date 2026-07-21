@@ -23,7 +23,7 @@ function PaymentsContent() {
 
   const [user, setUser] = useState<User | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [selectedMethod, setSelectedMethod] = useState<"heleket" | "yoomoney" | "crystalpay">("heleket")
+  const [selectedMethod, setSelectedMethod] = useState<"heleket" | "platega">("heleket")
   const [promoCode, setPromoCode] = useState("")
   const [promoLoading, setPromoLoading] = useState(false)
   const [promoResult, setPromoResult] = useState<{ valid: boolean; bonus?: number; message?: string } | null>(null)
@@ -85,12 +85,9 @@ function PaymentsContent() {
       if (selectedMethod === "heleket") {
         payload = { amount: parseFloat(amount) / 90, currency: "USDT", promoCode: promoResult?.valid ? promoCode : null }
         endpoint = "/api/heleket/create"
-      } else if (selectedMethod === "yoomoney") {
+      } else if (selectedMethod === "platega") {
         payload = { amount: parseFloat(amount), promoCode: promoResult?.valid ? promoCode : null }
-        endpoint = "/api/yoomoney/create"
-      } else if (selectedMethod === "crystalpay") {
-        payload = { amount: parseFloat(amount), promoCode: promoResult?.valid ? promoCode : null }
-        endpoint = "/api/crystalpay/create"
+        endpoint = "/api/platega/create"
       } else {
         notify.error("Неподдерживаемый метод")
         setProcessing(false)
@@ -163,8 +160,7 @@ function PaymentsContent() {
 
   const methods = [
     { id: "heleket", name: "Crypto", icon: "/heleket.png" },
-    { id: "yoomoney", name: "YooMoney", icon: "/yoomoney.png" },
-    { id: "crystalpay", name: "CrystalPay", icon: "/crystalpay.png" },
+    { id: "platega", name: "Platega", icon: "/platega.svg" },
   ] as const
 
   return (

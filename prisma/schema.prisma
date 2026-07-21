@@ -414,6 +414,7 @@ enum transaction_method {
   YOOMONEY
   HELEKET
   PAYPALYCH
+  PLATEGA
 }
 
 enum pterodactylnode_nodeType {
