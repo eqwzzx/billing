@@ -1,25 +1,33 @@
-import Image from "next/image"
-
 export function Logo({ className }: { className?: string }) {
   return (
     <>
       {/* Лого для темной темы (белое) */}
-      <Image
-        src="/logo.svg"
-        alt="Logo"
-        width={32}
-        height={40}
+      <svg 
+        width="32" 
+        height="32" 
+        viewBox="0 0 85 84" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
         className={`${className} dark:block hidden`}
-      />
+      >
+        <path d="M41.5 46.5C36.9988 52 32 84 20.5 84C13.701 84 1.28307 84 0 84C5.49878 72.9999 5.99862 48.4999 26.5 47C28.9989 47.0454 36.4988 46.5001 41.5 46.5Z" fill="white"/>
+        <path d="M73.5004 25C72.0004 30.5 69.5004 42 59.5004 42.5C23.5 42 19.5 42.5 10 51C14.5 24.5 35.5004 25 35.5004 25C35.5004 25 66.5004 25 73.5004 25Z" fill="white"/>
+        <path d="M84.5 2.30693e-09C83 5.5 81 20.5 71 21C35 21 27.5 19 16 30C20.5 3.50002 38 0.500017 38 0.500017C38 0.500017 77.5 -3.92175e-05 84.5 2.30693e-09Z" fill="white"/>
+      </svg>
       
       {/* Лого для светлой темы (темное) */}
-      <Image
-        src="/logo_dark.svg"
-        alt="Logo"
-        width={32}
-        height={40}
+      <svg 
+        width="32" 
+        height="32" 
+        viewBox="0 0 85 84" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
         className={`${className} dark:hidden block`}
-      />
+      >
+        <path d="M41.5 46.5C36.9988 52 32 84 20.5 84C13.701 84 1.28307 84 0 84C5.49878 72.9999 5.99862 48.4999 26.5 47C28.9989 47.0454 36.4988 46.5001 41.5 46.5Z" fill="currentColor"/>
+        <path d="M73.5004 25C72.0004 30.5 69.5004 42 59.5004 42.5C23.5 42 19.5 42.5 10 51C14.5 24.5 35.5004 25 35.5004 25C35.5004 25 66.5004 25 73.5004 25Z" fill="currentColor"/>
+        <path d="M84.5 2.30693e-09C83 5.5 81 20.5 71 21C35 21 27.5 19 16 30C20.5 3.50002 38 0.500017 38 0.500017C38 0.500017 77.5 -3.92175e-05 84.5 2.30693e-09Z" fill="currentColor"/>
+      </svg>
     </>
   )
 }
