@@ -20,16 +20,24 @@ async function getSmtpSettings(): Promise<SmtpSettings | null> {
     smtp[s.key.replace('smtp_', '')] = s.value
   })
 
-  if (!smtp.host || !smtp.user || !smtp.password) {
+  // Проверяем только обязательные поля: host и from
+  // user и password могут быть пустыми для локального Postfix
+  if (!smtp.host) {
+    console.error('[Email] SMTP_HOST не настроен')
+    return null
+  }
+
+  if (!smtp.from) {
+    console.error('[Email] SMTP_FROM не настроен')
     return null
   }
 
   return {
     host: smtp.host,
     port: parseInt(smtp.port || '587'),
-    user: smtp.user,
-    password: smtp.password,
-    from: smtp.from || smtp.user,
+    user: smtp.user || '',
+    password: smtp.password || '',
+    from: smtp.from,
     secure: smtp.secure === 'true',
   }
 }
@@ -40,15 +48,27 @@ async function createTransporter() {
     throw new Error('SMTP не настроен')
   }
 
-  return nodemailer.createTransport({
+  const transportConfig: any = {
     host: smtp.host,
     port: smtp.port,
     secure: smtp.secure,
-    auth: {
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+    tls: {
+      rejectUnauthorized: false
+    }
+  }
+
+  // Добавляем auth только если есть user и password
+  if (smtp.user && smtp.password) {
+    transportConfig.auth = {
       user: smtp.user,
       pass: smtp.password,
-    },
-  })
+    }
+  }
+
+  return nodemailer.createTransport(transportConfig)
 }
 
 function getEmailTemplate(content: string): string {
@@ -641,6 +661,67 @@ export async function sendServicePaymentConfirmationEmail(
     })
 
     console.log(`[Email] Service payment confirmation sent to ${email}`)
+    return true
+  } catch (error) {
+    console.error('[Email] Ошибка отправки:', error)
+    return false
+  }
+}
+
+export async function sendPterodactylPasswordEmail(
+  email: string,
+  data: {
+    email: string
+    password: string
+    panelUrl: string
+  }
+): Promise<boolean> {
+  try {
+    const smtp = await getSmtpSettings()
+    if (!smtp) {
+      console.error('[Email] SMTP не настроен')
+      return false
+    }
+
+    const transporter = await createTransporter()
+    
+    const content = `
+      <p style="margin:0 0 24px;font-size:18px;font-weight:600;color:#fff;text-align:center;">Новый пароль панели</p>
+      
+      <p style="margin:0 0 24px;font-size:14px;color:#ccc;text-align:center;">Ваш пароль от панели управления серверами был сброшен.</p>
+      
+      <div style="background:#1a1a1a;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding:10px 0;font-size:13px;color:#666;">
+              <span style="display:inline-block;width:20px;text-align:center;margin-right:8px;">📧</span>Логин
+            </td>
+            <td style="padding:10px 0;font-size:14px;color:#fff;text-align:right;font-family:monospace;word-break:break-all;">${data.email}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;color:#666;border-top:1px solid #333;">
+              <span style="display:inline-block;width:20px;text-align:center;margin-right:8px;">🔑</span>Пароль
+            </td>
+            <td style="padding:10px 0;font-size:14px;color:#10b981;text-align:right;font-family:monospace;word-break:break-all;border-top:1px solid #333;">${data.password}</td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="margin:0 0 16px;text-align:center;">
+        <a href="${data.panelUrl}" style="display:inline-block;background:#fff;color:#000;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:600;font-size:14px;">Открыть панель</a>
+      </p>
+      
+      <p style="margin:0;font-size:12px;color:#666;text-align:center;">⚠️ Сохраните этот пароль в надёжном месте</p>
+    `
+
+    await transporter.sendMail({
+      from: smtp.from,
+      to: email,
+      subject: 'Новый пароль панели управления — Fluxor',
+      html: getEmailTemplate(content),
+    })
+
+    console.log(`[Email] Pterodactyl password reset notification sent to ${email}`)
     return true
   } catch (error) {
     console.error('[Email] Ошибка отправки:', error)

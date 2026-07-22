@@ -77,6 +77,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Slug тарифа обязателен' }, { status: 400 })
     }
 
+    // Проверяем существует ли уже тариф с таким slug
+    const existingPlan = await prisma.plan.findUnique({
+      where: { slug: body.slug },
+      select: { id: true, name: true }
+    })
+
+    if (existingPlan) {
+      return NextResponse.json(
+        { error: `Тариф с slug "${body.slug}" уже существует (${existingPlan.name})` },
+        { status: 409 }
+      )
+    }
+
     const category = VALID_CATEGORIES.includes(body.category) ? body.category : 'MINECRAFT'
 
     const plan = await prisma.plan.create({
