@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyInternalSecret } from '@/lib/internal-auth'
 
 /**
  * API для Discord бота - получение списка серверов пользователя
  */
 export async function GET(request: NextRequest) {
   try {
-    // Проверяем авторизацию
-    const authHeader = request.headers.get('authorization')
-    const expectedAuth = `Bearer ${process.env.INTERNAL_WEBHOOK_SECRET || 'fluxor-internal-webhook'}`
-    
-    if (authHeader !== expectedAuth) {
+    if (!verifyInternalSecret(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

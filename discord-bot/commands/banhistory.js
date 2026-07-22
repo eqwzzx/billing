@@ -14,7 +14,7 @@ export default {
       const discordId = interaction.user.id;
 
       const [users] = await db.query(
-        'SELECT id, username FROM users WHERE discordId = ?',
+        'SELECT id, name FROM User WHERE discordId = ?',
         [discordId]
       );
 
@@ -31,10 +31,10 @@ export default {
       const userId = users[0].id;
 
       const [bans] = await db.query(
-        `SELECT reason, bannedAt, bannedUntil, unbannedAt 
-         FROM ban_history 
-         WHERE userId = ? 
-         ORDER BY bannedAt DESC 
+        `SELECT reason, startedAt, expiresAt, endedAt, isActive
+         FROM BanHistory
+         WHERE userId = ?
+         ORDER BY startedAt DESC
          LIMIT 10`,
         [userId]
       );
@@ -43,24 +43,24 @@ export default {
         .setColor('#0099ff')
         .setTitle('📜 История банов')
         .setTimestamp()
-        .setFooter({ text: 'Avelon Billing System' });
+        .setFooter({ text: 'Fluxor Billing System' });
 
       if (bans.length === 0) {
         embed.setDescription('У вас нет истории банов.');
       } else {
         bans.forEach((ban, index) => {
-          const status = ban.unbannedAt ? '✅ Разбанен' : '🚫 Активен';
-          const duration = ban.bannedUntil 
-            ? new Date(ban.bannedUntil).toLocaleDateString('ru-RU')
+          const status = ban.isActive ? '🚫 Активен' : '✅ Снят';
+          const duration = ban.expiresAt
+            ? new Date(ban.expiresAt).toLocaleDateString('ru-RU')
             : 'Навсегда';
 
           embed.addFields({
             name: `${status} - Бан #${index + 1}`,
-            value: 
+            value:
               `**Причина:** ${ban.reason}\n` +
-              `**Дата:** ${new Date(ban.bannedAt).toLocaleString('ru-RU')}\n` +
+              `**Дата:** ${new Date(ban.startedAt).toLocaleString('ru-RU')}\n` +
               `**До:** ${duration}` +
-              (ban.unbannedAt ? `\n**Разбанен:** ${new Date(ban.unbannedAt).toLocaleString('ru-RU')}` : ''),
+              (ban.endedAt ? `\n**Снят:** ${new Date(ban.endedAt).toLocaleString('ru-RU')}` : ''),
             inline: false
           });
         });

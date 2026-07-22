@@ -14,7 +14,7 @@ export default {
       const discordId = interaction.user.id;
 
       const [users] = await db.query(
-        'SELECT username, banned, bannedReason, bannedAt, bannedUntil FROM users WHERE discordId = ?',
+        'SELECT name, banned, banType, banReason, bannedAt, banExpiresAt FROM User WHERE discordId = ?',
         [discordId]
       );
 
@@ -36,26 +36,26 @@ export default {
           .setTitle('✅ Аккаунт не забанен')
           .setDescription('Ваш аккаунт активен и не имеет ограничений.')
           .setTimestamp()
-          .setFooter({ text: 'Avelon Billing System' });
+          .setFooter({ text: 'Fluxor Billing System' });
         await interaction.editReply({ embeds: [embed] });
         return;
       }
 
-      const bannedUntil = user.bannedUntil 
-        ? new Date(user.bannedUntil).toLocaleString('ru-RU')
+      const bannedUntil = user.banExpiresAt
+        ? new Date(user.banExpiresAt).toLocaleString('ru-RU')
         : 'Навсегда';
 
       const embed = new EmbedBuilder()
         .setColor('#ff0000')
         .setTitle('🚫 Аккаунт забанен')
         .addFields(
-          { name: 'Причина', value: user.bannedReason || 'Не указана', inline: false },
+          { name: 'Причина', value: user.banReason || 'Не указана', inline: false },
           { name: 'Дата бана', value: new Date(user.bannedAt).toLocaleString('ru-RU'), inline: true },
           { name: 'Истекает', value: bannedUntil, inline: true }
         )
         .setDescription('Для апелляции используйте команду `/appeal`')
         .setTimestamp()
-        .setFooter({ text: 'Avelon Billing System' });
+        .setFooter({ text: 'Fluxor Billing System' });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

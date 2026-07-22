@@ -215,24 +215,22 @@ export function validateAmount(amount: unknown): { valid: boolean; value: number
 // ============================================================================
 
 export function getClientIp(request: NextRequest): string {
-  // Bunny.net CDN headers
-  const bunnyIp = request.headers.get('cdn-real-ip') || 
-                  request.headers.get('x-pullzone-ip') ||
-                  request.headers.get('x-bunny-ip')
-  
-  if (bunnyIp) return bunnyIp
-  
-  // Standard proxy headers
+  const trusted =
+    request.headers.get('cdn-real-ip') ||       // Bunny.net
+    request.headers.get('x-pullzone-ip') ||     // Bunny.net
+    request.headers.get('x-bunny-ip') ||        // Bunny.net
+    request.headers.get('cf-connecting-ip') ||  // Cloudflare
+    request.headers.get('true-client-ip')       // Cloudflare Enterprise
+
+  if (trusted) return trusted.trim()
+
   const forwardedFor = request.headers.get('x-forwarded-for')
   if (forwardedFor) {
-    const ips = forwardedFor.split(',').map(ip => ip.trim())
-    return ips[0]
+    return forwardedFor.split(',')[0].trim()
   }
-  
+
   return (
     request.headers.get('x-real-ip') ||
-    request.headers.get('cf-connecting-ip') || // Cloudflare
-    request.headers.get('true-client-ip') || // Cloudflare Enterprise
     request.headers.get('x-client-ip') ||
     'unknown'
   )

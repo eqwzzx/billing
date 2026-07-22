@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { isAuthEnabled } from '@/lib/auth'
+import { liftExpiredBanForUser } from '@/lib/ban'
 import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET
@@ -87,8 +88,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    console.log('✅ User authenticated:', user.email)
-    return NextResponse.json({ user })
+    const finalUser = await liftExpiredBanForUser(user)
+
+    console.log('✅ User authenticated:', finalUser.email)
+    return NextResponse.json({ user: finalUser })
   } catch (error) {
     console.error('❌ Auth error:', error)
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })

@@ -41,60 +41,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const existingTransaction = await prisma.transaction.findFirst({
-      where: { externalId: label, status: "COMPLETED" }
-    })
-
-    if (existingTransaction) {
-      console.log("[YooMoney] Transaction already processed:", label)
-      return NextResponse.json({ status: "success" }, { status: 200 })
-    }
-
     let bonus = 0
-    
+    let appliedPromoId: string | null = null
     if (promoId) {
       const promo = await prisma.promoCode.findUnique({
         where: { id: promoId },
         include: { usages: { where: { userId } } }
       })
-
-      if (promo && promo.isActive && promo.usages.length === 0) {
-        if (promo.maxUses && promo.usedCount >= promo.maxUses) {
-          console.log("[YooMoney] Promo max uses reached:", promo.code)
-        } else {
-          if (promo.type === "BALANCE") {
-            bonus = promo.value
-          } else if (promo.type === "DISCOUNT") {
-            bonus = Math.round(amountNum * (promo.value / 100))
-          }
-
-          await prisma.promoUsage.create({
-            data: { userId, promoId: promo.id }
-          })
-          
-          await prisma.promoCode.update({
-            where: { id: promo.id },
-            data: { usedCount: { increment: 1 } },
-          })
-        }
+      if (
+        promo &&
+        promo.isActive &&
+        promo.usages.length === 0 &&
+        !(promo.maxUses && promo.usedCount >= promo.maxUses)
+      ) {
+        bonus = promo.type === "BALANCE"
+          ? promo.value
+          : Math.round(amountNum * (promo.value / 100))
+        appliedPromoId = promo.id
       }
     }
 
     const totalAmount = amountNum + bonus
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { balance: { increment: totalAmount } }
+    const credited = await prisma.$transaction(async (tx) => {
+      const claim = await tx.transaction.updateMany({
+        where: { externalId: label, status: "PENDING" },
+        data: {
+          status: "COMPLETED",
+          amount: totalAmount,
+          description: `YooMoney платёж: ${label}${bonus > 0 ? ` (бонус: +${bonus} ₽)` : ""}`
+        }
+      })
+      if (claim.count === 0) return false
+      await tx.user.update({
+        where: { id: userId },
+        data: { balance: { increment: totalAmount } }
+      })
+      return true
     })
 
-    await prisma.transaction.updateMany({
-      where: { externalId: label, status: "PENDING" },
-      data: {
-        amount: totalAmount,
-        status: "COMPLETED",
-        description: `YooMoney платёж: ${label}${bonus > 0 ? ` (бонус: +${bonus} ₽)` : ""}`
+    if (!credited) {
+      console.log("[YooMoney] Transaction already processed:", label)
+      return NextResponse.json({ status: "success" }, { status: 200 })
+    }
+
+    if (appliedPromoId) {
+      try {
+        await prisma.promoUsage.create({ data: { userId, promoId: appliedPromoId } })
+        await prisma.promoCode.update({
+          where: { id: appliedPromoId },
+          data: { usedCount: { increment: 1 } },
+        })
+      } catch (error) {
+        console.error("[YooMoney] Promo apply error:", error)
       }
-    })
+    }
 
     console.log(`[YooMoney] Payment processed successfully for user ${userId}, amount: ${totalAmount}`)
     

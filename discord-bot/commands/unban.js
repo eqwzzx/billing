@@ -32,7 +32,7 @@ export default {
       const targetUser = interaction.options.getUser('user');
 
       const [users] = await db.query(
-        'SELECT id, username, banned FROM users WHERE discordId = ?',
+        'SELECT id, name, banned FROM User WHERE discordId = ?',
         [targetUser.id]
       );
 
@@ -40,7 +40,7 @@ export default {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
           .setTitle('❌ Пользователь не найден')
-          .setDescription('Этот Discord аккаунт не привязан к Avelon.')
+          .setDescription('Этот Discord аккаунт не привязан к Fluxor.')
           .setTimestamp();
         await interaction.editReply({ embeds: [embed] });
         return;
@@ -59,24 +59,24 @@ export default {
       }
 
       await db.query(
-        'UPDATE users SET banned = false, bannedReason = NULL, bannedAt = NULL, bannedUntil = NULL WHERE id = ?',
-        [user.id]
+        'UPDATE User SET banned = false, banType = ?, banReason = NULL, bannedAt = NULL, bannedBy = NULL, banExpiresAt = NULL, updatedAt = NOW() WHERE id = ?',
+        ['NONE', user.id]
       );
 
       await db.query(
-        'UPDATE ban_history SET unbannedAt = NOW(), unbannedBy = ? WHERE userId = ? AND unbannedAt IS NULL',
-        [interaction.user.id, user.id]
+        'UPDATE BanHistory SET isActive = false, endedAt = NOW() WHERE userId = ? AND isActive = true',
+        [user.id]
       );
 
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
         .setTitle('✅ Пользователь разбанен')
         .addFields(
-          { name: 'Пользователь', value: user.username, inline: true },
+          { name: 'Пользователь', value: user.name || 'Без имени', inline: true },
           { name: 'Discord', value: `${targetUser.tag}`, inline: true }
         )
         .setTimestamp()
-        .setFooter({ text: 'Avelon Admin System' });
+        .setFooter({ text: 'Fluxor Admin System' });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

@@ -1,12 +1,16 @@
 /**
- * Simple debug endpoint for nodes (no auth required)
+ * Simple debug endpoint for nodes (только для админа)
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminAuth } from '@/lib/auth-admin'
 import fs from 'fs'
 import path from 'path'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireAdminAuth(request)
+  if (authError) return authError
+
   try {
     console.log('[Debug] Simple nodes test starting...')
     

@@ -1,7 +1,7 @@
 {
-  "name": "avelon-discord-bot",
+  "name": "fluxor-discord-bot",
   "version": "1.0.0",
-  "description": "Discord bot для управления биллингом Avelon",
+  "description": "Discord bot для управления биллингом Fluxor",
   "main": "index.js",
   "type": "module",
   "scripts": {

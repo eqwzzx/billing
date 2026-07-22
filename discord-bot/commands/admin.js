@@ -34,7 +34,7 @@ export default {
         `[Открыть веб-панель администратора](${adminUrl})`
       )
       .setTimestamp()
-      .setFooter({ text: 'Avelon Admin System' });
+      .setFooter({ text: 'Fluxor Admin System' });
 
     await interaction.reply({ embeds: [embed], ephemeral: true });
   },

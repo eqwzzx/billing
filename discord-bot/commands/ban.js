@@ -44,7 +44,7 @@ export default {
       const duration = interaction.options.getInteger('duration') || 0;
 
       const [users] = await db.query(
-        'SELECT id, username, banned FROM users WHERE discordId = ?',
+        'SELECT id, name, banned FROM User WHERE discordId = ?',
         [targetUser.id]
       );
 
@@ -52,7 +52,7 @@ export default {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
           .setTitle('❌ Пользователь не найден')
-          .setDescription('Этот Discord аккаунт не привязан к Avelon.')
+          .setDescription('Этот Discord аккаунт не привязан к Fluxor.')
           .setTimestamp();
         await interaction.editReply({ embeds: [embed] });
         return;
@@ -70,31 +70,39 @@ export default {
         return;
       }
 
-      const expiresAt = duration > 0 
+      const expiresAt = duration > 0
         ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000)
         : null;
+      const banType = duration > 0 ? 'TEMP_BAN' : 'PERM_BAN';
+
+      const [adminRows] = await db.query(
+        'SELECT id FROM User WHERE discordId = ?',
+        [interaction.user.id]
+      );
+      const adminUserId = adminRows[0] ? adminRows[0].id : null;
 
       await db.query(
-        'UPDATE users SET banned = true, bannedReason = ?, bannedAt = NOW(), bannedUntil = ? WHERE id = ?',
-        [reason, expiresAt, user.id]
+        'UPDATE User SET banned = true, banType = ?, banReason = ?, bannedAt = NOW(), banExpiresAt = ?, bannedBy = ?, banCount = banCount + 1, updatedAt = NOW() WHERE id = ?',
+        [banType, reason, expiresAt, adminUserId, user.id]
       );
 
       await db.query(
-        'INSERT INTO ban_history (userId, reason, bannedBy, bannedUntil) VALUES (?, ?, ?, ?)',
-        [user.id, reason, interaction.user.id, expiresAt]
+        `INSERT INTO BanHistory (id, userId, adminId, banType, targetType, reason, startedAt, expiresAt, isActive)
+         VALUES (UUID(), ?, ?, ?, 'account', ?, NOW(), ?, true)`,
+        [user.id, adminUserId, banType, reason, expiresAt]
       );
 
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
         .setTitle('✅ Пользователь забанен')
         .addFields(
-          { name: 'Пользователь', value: user.username, inline: true },
+          { name: 'Пользователь', value: user.name || 'Без имени', inline: true },
           { name: 'Discord', value: `${targetUser.tag}`, inline: true },
           { name: 'Причина', value: reason, inline: false },
           { name: 'Длительность', value: duration > 0 ? `${duration} дней` : 'Навсегда', inline: true }
         )
         .setTimestamp()
-        .setFooter({ text: 'Avelon Admin System' });
+        .setFooter({ text: 'Fluxor Admin System' });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

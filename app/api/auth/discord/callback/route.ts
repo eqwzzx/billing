@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { giveDiscordRole } from '@/lib/discord-role';
 import { discordLogger } from '@/lib/discord-logger';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 interface DiscordUser {
   id: string;
@@ -181,6 +181,11 @@ async function handleDiscordLogin(request: NextRequest, discordUser: DiscordUser
     }
   }
 
+  if (!JWT_SECRET) {
+    console.error('[Discord OAuth] JWT_SECRET not configured');
+    return NextResponse.redirect(new URL('/?error=server_config', baseUrl));
+  }
+
   // Создаем JWT токен
   const token = jwt.sign(
     {
@@ -196,7 +201,7 @@ async function handleDiscordLogin(request: NextRequest, discordUser: DiscordUser
   const cookieStore = await cookies();
   cookieStore.set('auth-token', token, {
     httpOnly: true,
-    secure: false, // ИЗМЕНИТЬ НА true ПОСЛЕ НАСТРОЙКИ SSL/HTTPS!
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 дней
     path: '/',
@@ -229,6 +234,11 @@ async function handleDiscordLink(request: NextRequest, discordUser: DiscordUser,
     return NextResponse.redirect(
       new URL(`/?error=not_authenticated`, baseUrl)
     );
+  }
+
+  if (!JWT_SECRET) {
+    console.error('[Discord Link] JWT_SECRET not configured');
+    return NextResponse.redirect(new URL('/?error=server_config', baseUrl));
   }
 
   try {

@@ -20,7 +20,7 @@ export default {
         '4. Следуйте инструкциям платежной системы'
       )
       .setTimestamp()
-      .setFooter({ text: 'Avelon Billing System' });
+      .setFooter({ text: 'Fluxor Billing System' });
 
     const row = new ActionRowBuilder()
       .addComponents(

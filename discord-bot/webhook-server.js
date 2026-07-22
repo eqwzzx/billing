@@ -15,13 +15,21 @@ export function createWebhookServer(client) {
   const app = express();
   app.use(express.json());
 
-  const webhookSecret = process.env.INTERNAL_WEBHOOK_SECRET || 'fluxor-internal-webhook';
+  const webhookSecret = process.env.INTERNAL_WEBHOOK_SECRET;
   const port = process.env.DISCORD_BOT_WEBHOOK_PORT || 3001;
+
+  if (!webhookSecret) {
+    console.error('⚠️  INTERNAL_WEBHOOK_SECRET не задан — webhook сервер закрыт (кроме /health)');
+  }
 
   // Middleware для проверки авторизации
   app.use((req, res, next) => {
     if (req.path === '/health') return next();
-    
+
+    if (!webhookSecret) {
+      return res.status(503).json({ error: 'Server not configured' });
+    }
+
     const authHeader = req.headers.authorization;
     if (authHeader !== `Bearer ${webhookSecret}`) {
       return res.status(401).json({ error: 'Unauthorized' });

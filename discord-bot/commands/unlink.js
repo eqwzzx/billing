@@ -4,7 +4,7 @@ import { getDbConnection } from '../utils/database.js';
 export default {
   data: new SlashCommandBuilder()
     .setName('unlink')
-    .setDescription('Отвязать Discord аккаунт от Avelon'),
+    .setDescription('Отвязать Discord аккаунт от Fluxor'),
   
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
@@ -15,7 +15,7 @@ export default {
 
       // Проверяем, привязан ли аккаунт
       const [users] = await db.query(
-        'SELECT id FROM users WHERE discordId = ?',
+        'SELECT id FROM User WHERE discordId = ?',
         [discordId]
       );
 
@@ -23,7 +23,7 @@ export default {
         const embed = new EmbedBuilder()
           .setColor('#ff0000')
           .setTitle('❌ Ошибка')
-          .setDescription('Ваш Discord аккаунт не привязан к Avelon.')
+          .setDescription('Ваш Discord аккаунт не привязан к Fluxor.')
           .setTimestamp();
 
         await interaction.editReply({ embeds: [embed] });
@@ -32,7 +32,7 @@ export default {
 
       // Отвязываем аккаунт
       await db.query(
-        'UPDATE users SET discordId = NULL WHERE discordId = ?',
+        'UPDATE User SET discordId = NULL, discordUsername = NULL, discordDiscriminator = NULL, discordAvatar = NULL, discordGlobalName = NULL, updatedAt = NOW() WHERE discordId = ?',
         [discordId]
       );
 
@@ -45,9 +45,9 @@ export default {
       const embed = new EmbedBuilder()
         .setColor('#00ff00')
         .setTitle('✅ Успешно')
-        .setDescription('Ваш Discord аккаунт успешно отвязан от Avelon.')
+        .setDescription('Ваш Discord аккаунт успешно отвязан от Fluxor.')
         .setTimestamp()
-        .setFooter({ text: 'Avelon Billing System' });
+        .setFooter({ text: 'Fluxor Billing System' });
 
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {

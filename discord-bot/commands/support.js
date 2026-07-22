@@ -21,7 +21,7 @@ export default {
         'Среднее время ответа: 1-2 часа'
       )
       .setTimestamp()
-      .setFooter({ text: 'Avelon Billing System' });
+      .setFooter({ text: 'Fluxor Billing System' });
 
     const row = new ActionRowBuilder()
       .addComponents(

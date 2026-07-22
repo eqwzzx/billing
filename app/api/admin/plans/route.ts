@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdminAuth } from '@/lib/auth-admin'
 
+const VALID_CATEGORIES = ['MINECRAFT', 'CODING', 'VDS', 'DEDICATED', 'DOMAIN', 'STORAGEBOX']
+
+function toInt(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : parseInt(String(value ?? ''), 10)
+  return Number.isFinite(n) ? Math.trunc(n) : fallback
+}
+
+function toFloat(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : parseFloat(String(value ?? ''))
+  return Number.isFinite(n) ? n : fallback
+}
+
+function toOptionalInt(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const n = typeof value === 'number' ? value : parseInt(String(value), 10)
+  return Number.isFinite(n) ? Math.trunc(n) : null
+}
+
+function planErrorResponse(error: unknown, action: 'create' | 'update') {
+  console.error(`${action === 'create' ? 'Create' : 'Update'} plan error:`, error)
+  const code = (error as { code?: string })?.code
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (code === 'P2002') {
+    return NextResponse.json({ error: 'Тариф с таким slug уже существует' }, { status: 409 })
+  }
+  if (code === 'P2025') {
+    return NextResponse.json({ error: 'Тариф не найден' }, { status: 404 })
+  }
+  return NextResponse.json(
+    { error: `Failed to ${action} plan`, detail: message },
+    { status: 500 },
+  )
+}
+
 export async function GET(request: NextRequest) {
   const authError = requireAdminAuth(request)
   if (authError) return authError
@@ -34,33 +69,42 @@ export async function POST(request: NextRequest) {
     const allowedEggIds: string[] = Array.isArray(body.allowedEggIds)
       ? body.allowedEggIds.filter((id: unknown): id is string => typeof id === 'string')
       : []
-    
+
+    if (!body.name || typeof body.name !== 'string') {
+      return NextResponse.json({ error: 'Название тарифа обязательно' }, { status: 400 })
+    }
+    if (!body.slug || typeof body.slug !== 'string') {
+      return NextResponse.json({ error: 'Slug тарифа обязателен' }, { status: 400 })
+    }
+
+    const category = VALID_CATEGORIES.includes(body.category) ? body.category : 'MINECRAFT'
+
     const plan = await prisma.plan.create({
       data: {
         name: body.name,
         slug: body.slug,
-        description: body.description,
-        category: body.category || 'MINECRAFT',
-        ram: body.ram,
-        cpu: body.cpu,
-        disk: body.disk,
-        databases: body.databases || 1,
-        backups: body.backups || 3,
-        allocations: body.allocations || 1,
-        price: body.price,
+        description: body.description ?? null,
+        category,
+        ram: toInt(body.ram),
+        cpu: toInt(body.cpu),
+        disk: toInt(body.disk),
+        databases: toInt(body.databases, 1),
+        backups: toInt(body.backups, 3),
+        allocations: toInt(body.allocations, 1),
+        price: toFloat(body.price),
         isFree: body.isFree ?? false,
         eggId: allowedEggIds[0] ?? body.eggId ?? null,
-        mobIcon: body.mobIcon,
-        customIcon: body.customIcon,
+        mobIcon: body.mobIcon ?? null,
+        customIcon: body.customIcon ?? null,
         isActive: body.isActive ?? true,
-        sortOrder: body.sortOrder || 0,
+        sortOrder: toInt(body.sortOrder, 0),
         // VDS-specific fields
-        vmPresetId: body.vmPresetId ?? null,
-        vmClusterId: body.vmClusterId ?? null,
-        vmIpPoolId: body.vmIpPoolId ?? null,
+        vmPresetId: toOptionalInt(body.vmPresetId),
+        vmClusterId: toOptionalInt(body.vmClusterId),
+        vmIpPoolId: toOptionalInt(body.vmIpPoolId),
         vdsCustomSpecs: body.vdsCustomSpecs ?? null,
         // Node selection fields
-        vmNodeId: body.vmNodeId ?? null,
+        vmNodeId: toOptionalInt(body.vmNodeId),
         vmNodeStrategy: body.vmNodeStrategy ?? null,
       },
     })
@@ -80,11 +124,10 @@ export async function POST(request: NextRequest) {
         _count: { select: { servers: true } },
       },
     })
-    
+
     return NextResponse.json(fullPlan)
   } catch (error) {
-    console.error('Create plan error:', error)
-    return NextResponse.json({ error: 'Failed to create plan' }, { status: 500 })
+    return planErrorResponse(error, 'create')
   }
 }
 
@@ -111,27 +154,27 @@ export async function PATCH(request: NextRequest) {
         ...(data.slug !== undefined && { slug: data.slug }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.category !== undefined && { category: data.category }),
-        ...(data.ram !== undefined && { ram: data.ram }),
-        ...(data.cpu !== undefined && { cpu: data.cpu }),
-        ...(data.disk !== undefined && { disk: data.disk }),
-        ...(data.databases !== undefined && { databases: data.databases }),
-        ...(data.backups !== undefined && { backups: data.backups }),
-        ...(data.allocations !== undefined && { allocations: data.allocations }),
-        ...(data.price !== undefined && { price: data.price }),
+        ...(data.ram !== undefined && { ram: toInt(data.ram) }),
+        ...(data.cpu !== undefined && { cpu: toInt(data.cpu) }),
+        ...(data.disk !== undefined && { disk: toInt(data.disk) }),
+        ...(data.databases !== undefined && { databases: toInt(data.databases, 1) }),
+        ...(data.backups !== undefined && { backups: toInt(data.backups, 3) }),
+        ...(data.allocations !== undefined && { allocations: toInt(data.allocations, 1) }),
+        ...(data.price !== undefined && { price: toFloat(data.price) }),
         ...(data.isFree !== undefined && { isFree: data.isFree }),
         ...(normalizedEggIds.length > 0 && { eggId: normalizedEggIds[0] }),
         ...(data.eggId !== undefined && normalizedEggIds.length === 0 && { eggId: data.eggId }),
         ...(data.mobIcon !== undefined && { mobIcon: data.mobIcon }),
         ...(data.customIcon !== undefined && { customIcon: data.customIcon }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+        ...(data.sortOrder !== undefined && { sortOrder: toInt(data.sortOrder, 0) }),
         // VDS-specific fields
-        ...(data.vmPresetId !== undefined && { vmPresetId: data.vmPresetId }),
-        ...(data.vmClusterId !== undefined && { vmClusterId: data.vmClusterId }),
-        ...(data.vmIpPoolId !== undefined && { vmIpPoolId: data.vmIpPoolId }),
+        ...(data.vmPresetId !== undefined && { vmPresetId: toOptionalInt(data.vmPresetId) }),
+        ...(data.vmClusterId !== undefined && { vmClusterId: toOptionalInt(data.vmClusterId) }),
+        ...(data.vmIpPoolId !== undefined && { vmIpPoolId: toOptionalInt(data.vmIpPoolId) }),
         ...(data.vdsCustomSpecs !== undefined && { vdsCustomSpecs: data.vdsCustomSpecs }),
         // Node selection fields
-        ...(data.vmNodeId !== undefined && { vmNodeId: data.vmNodeId }),
+        ...(data.vmNodeId !== undefined && { vmNodeId: toOptionalInt(data.vmNodeId) }),
         ...(data.vmNodeStrategy !== undefined && { vmNodeStrategy: data.vmNodeStrategy }),
       },
     })
@@ -158,8 +201,7 @@ export async function PATCH(request: NextRequest) {
     
     return NextResponse.json(fullPlan)
   } catch (error) {
-    console.error('Update plan error:', error)
-    return NextResponse.json({ error: 'Failed to update plan' }, { status: 500 })
+    return planErrorResponse(error, 'update')
   }
 }
 

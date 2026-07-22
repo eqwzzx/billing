@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyInternalSecret } from '@/lib/internal-auth';
 
 /**
  * Внутренний webhook для отправки уведомлений в Discord бота
@@ -9,11 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, data } = body;
 
-    // Проверка авторизации (внутренний запрос)
-    const authHeader = request.headers.get('authorization');
-    const secret = process.env.INTERNAL_WEBHOOK_SECRET || 'fluxor-internal-webhook';
-    
-    if (authHeader !== `Bearer ${secret}`) {
+    if (!verifyInternalSecret(request)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

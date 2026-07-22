@@ -13,13 +13,18 @@ import {
 } from '@/vm6/vmmanager6-rentals'
 
 // Секретный ключ для защиты cron endpoint
-const CRON_SECRET = process.env.CRON_SECRET || 'your-cron-secret'
+const CRON_SECRET = process.env.CRON_SECRET
 
 export async function GET(request: NextRequest) {
+  if (!CRON_SECRET) {
+    console.error('[Cron VMManager] CRON_SECRET not configured')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   // Проверяем авторизацию
   const authHeader = request.headers.get('authorization')
   const cronSecret = request.nextUrl.searchParams.get('secret')
-  
+
   if (authHeader !== `Bearer ${CRON_SECRET}` && cronSecret !== CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

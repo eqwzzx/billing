@@ -3,7 +3,7 @@ import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, But
 export default {
   data: new SlashCommandBuilder()
     .setName('link')
-    .setDescription('Привязать Discord аккаунт к Avelon'),
+    .setDescription('Привязать Discord аккаунт к Fluxor'),
   
   async execute(interaction) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -13,7 +13,7 @@ export default {
       .setColor('#5865F2')
       .setTitle('🔗 Привязка Discord аккаунта')
       .setDescription(
-        'Чтобы привязать ваш Discord аккаунт к Avelon:\n\n' +
+        'Чтобы привязать ваш Discord аккаунт к Fluxor:\n\n' +
         '1. Нажмите на кнопку ниже\n' +
         '2. Авторизуйтесь на сайте\n' +
         '3. Перейдите в раздел "Профиль"\n' +
@@ -22,7 +22,7 @@ export default {
       )
       .setThumbnail(interaction.user.displayAvatarURL())
       .setTimestamp()
-      .setFooter({ text: 'Avelon Billing System' });
+      .setFooter({ text: 'Fluxor Billing System' });
 
     const row = new ActionRowBuilder()
       .addComponents(

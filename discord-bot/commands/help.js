@@ -8,10 +8,10 @@ export default {
   async execute(interaction) {
     const embed = new EmbedBuilder()
       .setColor('#0099ff')
-      .setTitle('📚 Помощь по командам Avelon Bot')
+      .setTitle('📚 Помощь по командам Fluxor Bot')
       .setDescription('Вот список всех доступных команд:')
       .addFields(
-        { name: '/link', value: 'Привязать Discord аккаунт к Avelon', inline: false },
+        { name: '/link', value: 'Привязать Discord аккаунт к Fluxor', inline: false },
         { name: '/unlink', value: 'Отвязать Discord аккаунт', inline: false },
         { name: '/balance', value: 'Проверить баланс аккаунта', inline: false },
         { name: '/servers', value: 'Показать список ваших серверов', inline: false },
@@ -30,7 +30,7 @@ export default {
         { name: '/unban', value: 'Разбанить пользователя', inline: false }
       )
       .setTimestamp()
-      .setFooter({ text: 'Avelon Billing System' });
+      .setFooter({ text: 'Fluxor Billing System' });
 
     await interaction.reply({ embeds: [embed], ephemeral: true });
   },

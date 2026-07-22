@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     // Обновляем пользователя
     const bannedAt = new Date()
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         banned: true,
         banType: banType,
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     // Создаём запись в истории банов
     const banHistory = await prisma.banHistory.create({
       data: {
-        userId: userId,
+        userId: user.id,
         adminId: adminId,
         banType: banType,
         targetType: 'account',
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     // Логирование
     await adminLogger.log({
       action: 'USER_BAN',
-      userId: userId,
+      userId: user.id,
       adminId: adminId,
       description: `Пользователь заблокирован: ${banType}. Причина: ${reason}`,
       metadata: JSON.stringify({
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     // Отправляем уведомление в Discord
     await sendBanNotification({
-      userId: userId,
+      userId: user.id,
       banType: banType,
       reason: reason,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
@@ -256,7 +256,7 @@ export async function DELETE(request: NextRequest) {
 
     // Разблокируем пользователя
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         banned: false,
         banType: 'NONE',
@@ -270,7 +270,7 @@ export async function DELETE(request: NextRequest) {
     // Обновляем историю банов
     await prisma.banHistory.updateMany({
       where: {
-        userId: userId,
+        userId: user.id,
         isActive: true,
       },
       data: {
@@ -282,14 +282,14 @@ export async function DELETE(request: NextRequest) {
     // Логирование
     await adminLogger.log({
       action: 'USER_UNBAN',
-      userId: userId,
+      userId: user.id,
       adminId: adminId,
       description: `Пользователь разблокирован. Причина: ${reason || 'Не указана'}`,
     })
 
     // Отправляем уведомление
     await sendUnbanNotification({
-      userId: userId,
+      userId: user.id,
       reason: reason || 'Блокировка снята администратором',
       adminName: adminName,
     })

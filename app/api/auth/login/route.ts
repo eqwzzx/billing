@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { isAuthEnabled } from '@/lib/auth'
+import { liftExpiredBanForUser } from '@/lib/ban'
 import { checkRateLimit, rateLimitResponse, getClientIp, createAuditLog } from '@/lib/security'
 import { adminLogger } from '@/lib/admin-logger'
 import { discordLogger } from '@/lib/discord-logger'
@@ -61,13 +62,15 @@ export async function POST(request: NextRequest) {
     const isValid = await bcrypt.compare(password, user.password)
     
     if (!isValid) {
-      createAuditLog(request, 'LOGIN_FAILED', { 
+      createAuditLog(request, 'LOGIN_FAILED', {
         userId: user.id,
         details: { reason: 'invalid_password' },
-        success: false 
+        success: false
       })
       return NextResponse.json({ error: 'Неверный email или пароль' }, { status: 401 })
     }
+
+    await liftExpiredBanForUser(user)
 
     const token = jwt.sign(
       { 
@@ -113,10 +116,9 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // ИСПРАВЛЕНО: secure: false для HTTP (без SSL), установите true после настройки HTTPS
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: false, // ИЗМЕНИТЬ НА true ПОСЛЕ НАСТРОЙКИ SSL/HTTPS!
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/'

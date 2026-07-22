@@ -21,7 +21,7 @@ async function handleBanAppeal(interaction) {
     const contact = interaction.fields.getTextInputValue('appeal-contact') || 'Не указано';
 
     const [users] = await db.query(
-      'SELECT id, username, banned FROM users WHERE discordId = ?',
+      'SELECT id, name, banned FROM User WHERE discordId = ?',
       [discordId]
     );
 
@@ -29,7 +29,7 @@ async function handleBanAppeal(interaction) {
       const embed = new EmbedBuilder()
         .setColor('#ff0000')
         .setTitle('❌ Аккаунт не привязан')
-        .setDescription('Ваш Discord аккаунт не привязан к Avelon.')
+        .setDescription('Ваш Discord аккаунт не привязан к Fluxor.')
         .setTimestamp();
       await interaction.editReply({ embeds: [embed] });
       return;
@@ -49,9 +49,9 @@ async function handleBanAppeal(interaction) {
 
     // Проверяем, есть ли уже активная апелляция
     const [existingAppeals] = await db.query(
-      `SELECT id FROM ban_appeals 
-       WHERE userId = ? AND status = 'pending' 
-       ORDER BY createdAt DESC 
+      `SELECT id FROM BanAppeal
+       WHERE userId = ? AND status = 'PENDING'
+       ORDER BY createdAt DESC
        LIMIT 1`,
       [user.id]
     );
@@ -67,10 +67,14 @@ async function handleBanAppeal(interaction) {
     }
 
     // Создаем апелляцию
+    const fullReason = contact && contact !== 'Не указано'
+      ? `${reason}\n\nКонтакт для связи: ${contact}`
+      : reason;
+
     await db.query(
-      `INSERT INTO ban_appeals (userId, reason, contact, status, createdAt) 
-       VALUES (?, ?, ?, 'pending', NOW())`,
-      [user.id, reason, contact]
+      `INSERT INTO BanAppeal (id, userId, reason, status, createdAt)
+       VALUES (UUID(), ?, ?, 'PENDING', NOW())`,
+      [user.id, fullReason]
     );
 
     const embed = new EmbedBuilder()
@@ -85,7 +89,7 @@ async function handleBanAppeal(interaction) {
         { name: 'Контакт', value: contact, inline: false }
       )
       .setTimestamp()
-      .setFooter({ text: 'Avelon Billing System' });
+      .setFooter({ text: 'Fluxor Billing System' });
 
     await interaction.editReply({ embeds: [embed] });
 
@@ -98,7 +102,7 @@ async function handleBanAppeal(interaction) {
           .setColor('#ffa500')
           .setTitle('🆕 Новая апелляция на бан')
           .addFields(
-            { name: 'Пользователь', value: user.username, inline: true },
+            { name: 'Пользователь', value: user.name || 'Без имени', inline: true },
             { name: 'Discord', value: `${interaction.user.tag}`, inline: true },
             { name: 'Причина апелляции', value: reason, inline: false },
             { name: 'Контакт', value: contact, inline: false }

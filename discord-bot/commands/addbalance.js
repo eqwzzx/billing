@@ -84,8 +84,8 @@ export default {
 
       // Обновляем баланс
       await connection.execute(
-        'UPDATE User SET balance = ?, updatedAt = NOW() WHERE id = ?',
-        [newBalance, user.id]
+        'UPDATE User SET balance = balance + ?, updatedAt = NOW() WHERE id = ?',
+        [amount, user.id]
       );
 
       // Создаём запись о транзакции с информацией об администраторе

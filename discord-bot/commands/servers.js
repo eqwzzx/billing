@@ -15,7 +15,7 @@ export default {
 
       // Получаем пользователя
       const [users] = await db.query(
-        'SELECT id, username FROM users WHERE discordId = ?',
+        'SELECT id, name FROM User WHERE discordId = ?',
         [discordId]
       );
 
@@ -24,7 +24,7 @@ export default {
           .setColor('#ff0000')
           .setTitle('❌ Аккаунт не привязан')
           .setDescription(
-            'Ваш Discord аккаунт не привязан к Avelon.\n' +
+            'Ваш Discord аккаунт не привязан к Fluxor.\n' +
             'Используйте команду `/link` для привязки аккаунта.'
           )
           .setTimestamp();
@@ -37,8 +37,8 @@ export default {
 
       // Получаем серверы пользователя
       const [servers] = await db.query(
-        `SELECT id, name, status, createdAt FROM servers 
-         WHERE userId = ? 
+        `SELECT id, name, status, createdAt FROM Server
+         WHERE userId = ?
          ORDER BY createdAt DESC`,
         [userId]
       );
@@ -47,7 +47,7 @@ export default {
         .setColor('#0099ff')
         .setTitle('🖥️ Ваши серверы')
         .setTimestamp()
-        .setFooter({ text: 'Avelon Billing System' });
+        .setFooter({ text: 'Fluxor Billing System' });
 
       if (servers.length === 0) {
         embed.setDescription('У вас пока нет серверов.');
@@ -55,8 +55,8 @@ export default {
         embed.setDescription(`Найдено серверов: ${servers.length}`);
         
         servers.slice(0, 10).forEach(server => {
-          const statusEmoji = server.status === 'active' ? '✅' : 
-                             server.status === 'suspended' ? '⏸️' : '❌';
+          const statusEmoji = server.status === 'ACTIVE' ? '✅' :
+                             server.status === 'SUSPENDED' ? '⏸️' : '❌';
           embed.addFields({
             name: `${statusEmoji} ${server.name}`,
             value: `ID: ${server.id}\nСтатус: ${server.status}\nСоздан: ${new Date(server.createdAt).toLocaleDateString('ru-RU')}`,

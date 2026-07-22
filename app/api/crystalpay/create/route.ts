@@ -3,11 +3,16 @@ import { prisma } from "@/lib/db"
 import { createInvoice } from "@/lib/crystalpay"
 import jwt from "jsonwebtoken"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
+const JWT_SECRET = process.env.JWT_SECRET
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://fluxor.solutions"
 
 export async function POST(request: NextRequest) {
   try {
+    if (!JWT_SECRET) {
+      console.error("JWT_SECRET not configured")
+      return NextResponse.json({ error: "Ошибка конфигурации сервера" }, { status: 500 })
+    }
+
     const token = request.cookies.get("auth-token")?.value
 
     if (!token) {

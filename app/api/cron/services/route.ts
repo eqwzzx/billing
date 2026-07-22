@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { liftAllExpiredBans } from '@/lib/ban'
 
 // Проверка истекших сервисов и установка grace period
 export async function GET(req: NextRequest) {
@@ -17,6 +18,8 @@ export async function GET(req: NextRequest) {
 
     let suspended = 0
     let graceSet = 0
+
+    const bansLifted = await liftAllExpiredBans()
 
     // Обрабатываем дедики
     const expiredDedicated = await prisma.dedicatedServer.findMany({
@@ -144,7 +147,8 @@ export async function GET(req: NextRequest) {
       success: true,
       graceSet,
       suspended,
-      message: `Grace period set for ${graceSet} services, ${suspended} services suspended`,
+      bansLifted,
+      message: `Grace period set for ${graceSet} services, ${suspended} services suspended, ${bansLifted} bans lifted`,
     })
   } catch (error) {
     console.error('[Cron Services]', error)

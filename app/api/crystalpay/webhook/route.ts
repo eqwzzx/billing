@@ -23,16 +23,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 403 })
     }
 
-    // Проверяем, не обработан ли уже этот платёж
-    const existingTransaction = await prisma.transaction.findFirst({
-      where: { externalId: id, status: "COMPLETED" },
-    })
-
-    if (existingTransaction) {
-      console.log("[CrystalPay Webhook] Transaction already processed:", id)
-      return NextResponse.json({ success: true, message: "Already processed" })
-    }
-
     // Извлекаем userId из order_id или extra
     const orderId = extra || order_id
     const [userId, timestamp, promoId] = orderId.split("_")
@@ -53,83 +43,89 @@ export async function POST(request: NextRequest) {
       }
 
       let bonus = 0
-
-      // Применяем промокод если есть
+      let appliedPromoId: string | null = null
       if (promoId && promoId !== "none") {
         const promo = await prisma.promoCode.findUnique({
           where: { id: promoId },
           include: { usages: { where: { userId } } },
         })
-
-        if (promo && promo.isActive && promo.usages.length === 0) {
-          // Проверяем лимит использований
-          if (promo.maxUses && promo.usedCount >= promo.maxUses) {
-            console.log("[CrystalPay Webhook] Promo max uses reached:", promo.code)
-          } else {
-            if (promo.type === "BALANCE") {
-              bonus = promo.value
-            } else if (promo.type === "DISCOUNT") {
-              bonus = Math.round(paymentAmount * (promo.value / 100))
-            }
-
-            await prisma.promoUsage.create({
-              data: { promoId: promo.id, userId },
-            })
-
-            await prisma.promoCode.update({
-              where: { id: promo.id },
-              data: { usedCount: { increment: 1 } },
-            })
-          }
+        if (
+          promo &&
+          promo.isActive &&
+          promo.usages.length === 0 &&
+          !(promo.maxUses && promo.usedCount >= promo.maxUses)
+        ) {
+          bonus = promo.type === "BALANCE"
+            ? promo.value
+            : Math.round(paymentAmount * (promo.value / 100))
+          appliedPromoId = promo.id
         }
       }
 
       const totalAmount = paymentAmount + bonus
 
-      // Обновляем баланс пользователя
-      await prisma.user.update({
-        where: { id: userId },
-        data: { balance: { increment: totalAmount } },
+      const credited = await prisma.$transaction(async (tx) => {
+        const claim = await tx.transaction.updateMany({
+          where: { externalId: id, status: "PENDING" },
+          data: {
+            status: "COMPLETED",
+            amount: totalAmount,
+            description: `CrystalPay платёж: ${id}${bonus > 0 ? ` (бонус: +${bonus} ₽)` : ""}`,
+          },
+        })
+        if (claim.count === 0) return false
+        await tx.user.update({
+          where: { id: userId },
+          data: { balance: { increment: totalAmount } },
+        })
+        return true
       })
+
+      if (!credited) {
+        console.log("[CrystalPay Webhook] Transaction already processed:", id)
+        return NextResponse.json({ success: true, message: "Already processed" })
+      }
+
+      if (appliedPromoId) {
+        try {
+          await prisma.promoUsage.create({ data: { promoId: appliedPromoId, userId } })
+          await prisma.promoCode.update({
+            where: { id: appliedPromoId },
+            data: { usedCount: { increment: 1 } },
+          })
+        } catch (error) {
+          console.error("[CrystalPay Webhook] Promo apply error:", error)
+        }
+      }
 
       // Обновляем статистику реферальной ссылки если есть
       try {
         const referralReg = await prisma.referralRegistration.findUnique({
           where: { userId },
         })
-        
+
         if (referralReg) {
           const updateData: any = {
             totalDeposits: { increment: totalAmount },
           }
-          
+
           // Если это первое пополнение
           if (!referralReg.hasDeposited) {
             updateData.hasDeposited = true
             updateData.firstDepositAt = new Date()
           }
-          
+
           await prisma.referralRegistration.update({
             where: { userId },
             data: updateData,
           })
-          
+
           console.log('[CrystalPay Webhook] Updated referral stats for user:', userId)
         }
       } catch (error) {
         console.error('[CrystalPay Webhook] Error updating referral stats:', error)
         // Не блокируем платёж из-за ошибки обновления реферальной статистики
       }
-
-      // Обновляем транзакцию
-      const transaction = await prisma.transaction.updateMany({
-        where: { externalId: id },
-        data: {
-          amount: totalAmount,
-          status: "COMPLETED",
-          description: `CrystalPay платёж: ${id}${bonus > 0 ? ` (бонус: +${bonus} ₽)` : ""}`,
-        },
-      })
 
       console.log(`[CrystalPay Webhook] Payment processed successfully for user ${userId}, amount: ${totalAmount}`)
 
@@ -177,7 +173,7 @@ export async function POST(request: NextRequest) {
     // Обрабатываем отменённый платёж
     if (state === "canceled") {
       await prisma.transaction.updateMany({
-        where: { externalId: id },
+        where: { externalId: id, status: "PENDING" },
         data: {
           status: "FAILED",
           description: "Платёж отменён",

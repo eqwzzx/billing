@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getNodeSelectionService } from "@/lib/node-selection"
 import { getVMManager6API } from "@/vm6/vmmanager6"
+import { requireAdminAuth } from "@/lib/auth-admin"
 
 export async function GET(request: NextRequest) {
+  const authError = requireAdminAuth(request)
+  if (authError) return authError
+
   try {
     console.log('[Debug] Starting node diagnostics...')
     
