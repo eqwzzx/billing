@@ -230,6 +230,63 @@ function startAutoUpdate(message, channelId) {
   return interval;
 }
 
+/**
+ * Запустить глобальное автообновление для всех статусов
+ */
+async function startGlobalAutoUpdate(client) {
+  try {
+    const db = await getDbConnection();
+    
+    // Получаем ID канала для статусов из настроек
+    const [settings] = await db.query(
+      'SELECT value FROM BotSetting WHERE `key` = ?',
+      ['status_channel_id']
+    );
+    
+    if (!settings || settings.length === 0) {
+      console.log('⚠️  Status channel not configured, skipping auto-update');
+      return;
+    }
+    
+    const statusChannelId = settings[0].value;
+    
+    // Получаем канал
+    const channel = await client.channels.fetch(statusChannelId).catch(() => null);
+    if (!channel) {
+      console.log('⚠️  Status channel not found, skipping auto-update');
+      return;
+    }
+    
+    // Получаем ID последнего сообщения статуса
+    const [messageSettings] = await db.query(
+      'SELECT value FROM BotSetting WHERE `key` = ?',
+      ['status_message_id']
+    );
+    
+    if (!messageSettings || messageSettings.length === 0) {
+      console.log('⚠️  Status message not configured, skipping auto-update');
+      return;
+    }
+    
+    const messageId = messageSettings[0].value;
+    
+    // Получаем сообщение
+    const message = await channel.messages.fetch(messageId).catch(() => null);
+    if (!message) {
+      console.log('⚠️  Status message not found, skipping auto-update');
+      return;
+    }
+    
+    // Запускаем автообновление для этого сообщения
+    statusMessages.set(statusChannelId, message);
+    startAutoUpdate(message, statusChannelId);
+    
+    console.log(`✅ Global auto-update started for channel ${statusChannelId}`);
+  } catch (error) {
+    console.error('Error starting global auto-update:', error);
+  }
+}
+
 export default {
   data: new SlashCommandBuilder()
     .setName('status')
@@ -267,6 +324,25 @@ export default {
       startAutoUpdate(message, channelId);
       statusMessages.set(channelId, message);
       
+      // Сохраняем ID канала и сообщения в БД для автообновления после перезапуска
+      try {
+        const db = await getDbConnection();
+        
+        await db.query(
+          'INSERT INTO BotSetting (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?',
+          ['status_channel_id', channelId, channelId]
+        );
+        
+        await db.query(
+          'INSERT INTO BotSetting (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?',
+          ['status_message_id', message.id, message.id]
+        );
+        
+        console.log(`✅ Status message info saved to database`);
+      } catch (dbError) {
+        console.error('Error saving status message info:', dbError);
+      }
+      
       console.log(`✅ Status message started with auto-update in channel ${channelId}`);
       
     } catch (error) {
@@ -294,5 +370,8 @@ export default {
         console.error('Error refreshing status:', error);
       }
     }
-  }
+  },
+  
+  // Экспортируем функцию для глобального автообновления
+  startGlobalAutoUpdate
 };

@@ -91,7 +91,7 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 // Событие готовности бота
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
   console.log('✅ Бот запущен!');
   console.log(`🤖 Имя бота: ${client.user.tag}`);
   console.log(`🆔 ID бота: ${client.user.id}`);
@@ -109,6 +109,17 @@ client.once(Events.ClientReady, () => {
     createWebhookServer(client);
   } catch (error) {
     console.error('⚠️  Не удалось запустить webhook сервер:', error);
+  }
+
+  // Запуск автообновления статусов
+  try {
+    const statusCommand = await import('./commands/status.js');
+    if (statusCommand.default.startGlobalAutoUpdate) {
+      statusCommand.default.startGlobalAutoUpdate(client);
+      console.log('✅ Запущено автообновление статусов серверов');
+    }
+  } catch (error) {
+    console.error('⚠️  Не удалось запустить автообновление статусов:', error);
   }
 });
 
