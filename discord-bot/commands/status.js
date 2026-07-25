@@ -293,7 +293,22 @@ export default {
     .setDescription('Показать статус всех сервисов с автообновлением'),
   
   async execute(interaction) {
-    await interaction.deferReply();
+    // Проверка прав администратора
+    const adminIds = process.env.ADMIN_DISCORD_IDS?.split(',').map(id => id.trim()) || [];
+    
+    if (!adminIds.includes(interaction.user.id)) {
+      await interaction.reply({
+        content: '❌ У вас нет прав для использования этой команды.',
+        ephemeral: true
+      });
+      return;
+    }
+
+    // Отправляем эфемерное сообщение что команда выполняется
+    await interaction.reply({
+      content: '⏳ Получение статуса серверов...',
+      ephemeral: true
+    });
 
     try {
       const embed = await createStatusEmbed();
@@ -306,9 +321,16 @@ export default {
             .setStyle(ButtonStyle.Primary)
         );
       
-      const message = await interaction.editReply({ 
+      // Отправляем публичное сообщение со статусом в текущий канал
+      const message = await interaction.channel.send({ 
         embeds: [embed],
         components: [row]
+      });
+
+      // Обновляем эфемерное сообщение
+      await interaction.editReply({
+        content: '✅ Статус серверов отображен в канале!',
+        ephemeral: true
       });
       
       // Сохраняем сообщение для автообновления
@@ -348,13 +370,10 @@ export default {
     } catch (error) {
       console.error('Error executing status command:', error);
 
-      const embed = new EmbedBuilder()
-        .setColor('#ff0000')
-        .setTitle('❌ Ошибка')
-        .setDescription('Произошла ошибка при получении статуса сервисов.')
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({
+        content: '❌ Произошла ошибка при получении статуса сервисов.',
+        ephemeral: true
+      });
     }
   },
   
