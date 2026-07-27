@@ -42,12 +42,12 @@ export async function POST(request: NextRequest) {
 
     // Обрабатываем успешный платёж
     if (status === "CONFIRMED") {
-      // Platega возвращает сумму, которую заплатил клиент (с комиссией)
-      // Нужно вычислить сумму без комиссии, которую получаем мы
-      // Комиссия Platega ~8.5% (это комиссия платёжной системы, не наша)
-      // Формула: originalAmount = paidAmount / 1.085
+      // Platega возвращает сумму, которую заплатил клиент (с нашей комиссией)
+      // Нужно вычислить исходную сумму, которую пользователь хотел зачислить
+      // Комиссия нашей системы ~9.5% добавляется к сумме при создании платежа
+      // Формула: originalAmount = paidAmount / 1.095
       const paidAmount = amount
-      const paymentAmount = Math.round(paidAmount / 1.085) // Сумма без комиссии Platega
+      const paymentAmount = Math.round(paidAmount / 1.095) // Сумма которую зачисляем пользователю
 
       const user = await prisma.user.findUnique({ where: { id: userId } })
       if (!user) {
@@ -82,14 +82,14 @@ export async function POST(request: NextRequest) {
           where: { externalId: id, status: "PENDING" },
           data: {
             status: "COMPLETED",
-            amount: totalAmount,
+            amount: paymentAmount, // Записываем сумму ДО добавления бонуса
             description: `Platega платёж: ${id}${bonus > 0 ? ` (бонус: +${bonus} ₽)` : ""}`,
           },
         })
         if (claim.count === 0) return false
         await tx.user.update({
           where: { id: userId },
-          data: { balance: { increment: totalAmount } },
+          data: { balance: { increment: totalAmount } }, // Зачисляем полную сумму с бонусом
         })
         return true
       })

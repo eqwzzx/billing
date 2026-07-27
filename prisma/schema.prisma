@@ -16,6 +16,22 @@ model AdminSettings {
   @@map("AdminSettings")
 }
 
+model Alert {
+  id          String      @id @default(cuid())
+  type        alert_type  @default(INFO)
+  message     String      @db.Text
+  actionLabel String?
+  actionUrl   String?
+  isActive    Boolean     @default(true)
+  isSystem    Boolean     @default(false)
+  systemType  String?
+  priority    Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("Alert")
+}
+
 model Notification {
   id           String            @id @default(cuid())
   title        String
@@ -372,6 +388,12 @@ enum notification_type {
   SUCCESS
   ERROR
   MAINTENANCE
+}
+
+enum alert_type {
+  INFO
+  WARNING
+  ERROR
 }
 
 enum plan_category {

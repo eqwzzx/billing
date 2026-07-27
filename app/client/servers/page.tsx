@@ -23,6 +23,7 @@ export default function ServersPage() {
       reinstallingVdsId={ctx.reinstallingVdsId}
       onRenewVds={ctx.onRenewVds}
       renewingVdsId={ctx.renewingVdsId}
+      plans={ctx.plans}
     />
   )
 }

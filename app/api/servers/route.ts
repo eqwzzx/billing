@@ -74,40 +74,43 @@ export async function GET(request: NextRequest) {
               newStatus = 'DELETED' as any
             } else if (server.status === 'SUSPENDED') {
               newStatus = 'SUSPENDED'
+            } else if (statusData.is_suspended) {
+              // Приоритет для suspended состояния из Pterodactyl
+              newStatus = 'SUSPENDED'
+            } else if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
+              // Pterodactyl явно указывает на установку
+              newStatus = 'INSTALLING'
             } else if (server.status === 'INSTALLING' && statusData.state === 'running') {
+              // Установка завершена, сервер запущен
               newStatus = 'ACTIVE'
             } else if (server.status === 'INSTALLING' && (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting')) {
+              // Сервер установлен и перезапускается
               newStatus = 'RESTARTING'
-            } else if (server.status === 'INSTALLING' && statusData.state === 'offline') {
+            } else if (server.status === 'INSTALLING' && (statusData.state === 'offline' || statusData.state === 'stopped')) {
+              // Сервер установлен, но выключен
               const createdAt = new Date(server.createdAt)
               const now = new Date()
               const minutesAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60)
               
-              if (minutesAgo > 5) {
+              // Даём 3 минуты на установку, после этого считаем что сервер просто выключен
+              if (minutesAgo > 3) {
                 newStatus = 'OFF'
               } else {
                 newStatus = 'INSTALLING'
               }
-            } else if (server.status === 'INSTALLING') {
-              newStatus = 'INSTALLING'
-            } else if (statusData.is_suspended) {
-              newStatus = 'SUSPENDED'
-            } else if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
-              newStatus = 'INSTALLING'
             } else if (statusData.state === 'starting') {
               newStatus = 'RESTARTING'
             } else if (statusData.state === 'stopping') {
               newStatus = 'RESTARTING'
             } else if (statusData.state === 'restarting') {
               newStatus = 'RESTARTING'
-            } else if (statusData.state === 'stopped') {
-              newStatus = 'OFF'
-            } else if (statusData.state === 'offline') {
+            } else if (statusData.state === 'stopped' || statusData.state === 'offline') {
               newStatus = 'OFF'
             } else if (statusData.state === 'running') {
               newStatus = 'ACTIVE'
             } else {
-              newStatus = 'ACTIVE'
+              // Неизвестное состояние - если был активен, оставляем активным
+              newStatus = server.status === 'ACTIVE' ? 'ACTIVE' : 'OFF'
             }
             
             return { ...server, status: newStatus }

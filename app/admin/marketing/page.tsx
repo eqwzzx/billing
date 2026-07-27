@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { notify } from "@/lib/notify"
-import { TrendingUp, Users, DollarSign, Eye, ArrowLeft, Calendar, Filter, Percent, Link as LinkIcon } from "lucide-react"
+import { TrendingUp, Users, DollarSign, Eye, ArrowLeft, Calendar, Filter, Percent, Link as LinkIcon, Trash2 } from "lucide-react"
 import Link from "next/link"
 
 interface AnalyticsData {
@@ -107,6 +107,30 @@ export default function MarketingAnalyticsPage() {
     setSourceFilter("")
     setCampaignFilter("")
     setTimeout(loadAnalytics, 100)
+  }
+
+  const handleDeleteSource = async (source: string, medium: string, campaign: string) => {
+    if (!confirm(`Удалить все события для источника "${source}/${medium}/${campaign}"?\n\nЭто действие нельзя отменить!`)) {
+      return
+    }
+
+    try {
+      const res = await fetch('/api/admin/marketing/analytics', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, medium, campaign })
+      })
+
+      if (res.ok) {
+        notify.success('События удалены')
+        loadAnalytics()
+      } else {
+        const err = await res.json().catch(() => null)
+        notify.error(err?.error || 'Ошибка удаления')
+      }
+    } catch (error) {
+      notify.error('Ошибка удаления')
+    }
   }
 
   if (isAuthorized === null || loading) {
@@ -334,12 +358,13 @@ export default function MarketingAnalyticsPage() {
                   <th className="p-4 text-center text-sm font-medium">Выручка</th>
                   <th className="p-4 text-center text-sm font-medium">Конверсия</th>
                   <th className="p-4 text-center text-sm font-medium">Средний чек</th>
+                  <th className="p-4 text-center text-sm font-medium">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {analytics.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={10} className="p-8 text-center text-muted-foreground">
                       Нет данных за выбранный период
                     </td>
                   </tr>
@@ -374,6 +399,15 @@ export default function MarketingAnalyticsPage() {
                       </td>
                       <td className="p-4 text-center font-medium">
                         {item.avgRevenue.toLocaleString()} ₽
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => handleDeleteSource(item.source, item.medium, item.campaign)}
+                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Удалить все события этого источника"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
                       </td>
                     </tr>
                   ))

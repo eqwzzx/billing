@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { 
   Settings, Users, Server, CreditCard, Database, 
   Home, Search, Activity, Cloud, Mail, LogOut, FileText,
-  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp, Wallet
+  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp, Wallet, Bell
 } from "lucide-react"
 import { useState } from "react"
 
@@ -78,6 +78,15 @@ export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQue
             >
               <TrendingUp className="size-4" />
               <span className="hidden xl:block">Маркетинг</span>
+            </Link>
+            
+            {/* Alerts как отдельная кнопка-ссылка */}
+            <Link
+              href="/admin/alerts"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Bell className="size-4" />
+              <span className="hidden xl:block">Alerts</span>
             </Link>
             
             {/* Настройки как отдельная кнопка */}
@@ -176,6 +185,16 @@ export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQue
               >
                 <TrendingUp className="size-4" />
                 <span>Маркетинг</span>
+              </Link>
+              
+              {/* Alerts в мобильном меню */}
+              <Link
+                href="/admin/alerts"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <Bell className="size-4" />
+                <span>Alerts</span>
               </Link>
               
               {/* Настройки в мобильном меню */}

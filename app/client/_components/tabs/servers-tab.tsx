@@ -68,6 +68,7 @@ interface ServersTabProps {
   reinstallingVdsId?: number | null
   onRenewVds?: (hostId: number) => Promise<void>
   renewingVdsId?: number | null
+  plans: Plan[]
 }
 
 export function ServersTab({
@@ -86,6 +87,7 @@ export function ServersTab({
   reinstallingVdsId,
   onRenewVds,
   renewingVdsId,
+  plans,
 }: ServersTabProps) {
   const [expandedVdsId, setExpandedVdsId] = useState<string | null>(null)
   const [openingPanelId, setOpeningPanelId] = useState<number | null>(null)
@@ -95,6 +97,12 @@ export function ServersTab({
 
   // Startup command modal state
   const [startupModalServer, setStartupModalServer] = useState<ServerData | null>(null)
+
+  // Upgrade modal state
+  const [upgradeModalServer, setUpgradeModalServer] = useState<ServerData | null>(null)
+  const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<string | null>(null)
+  const [upgradingServerId, setUpgradingServerId] = useState<string | null>(null)
+  const [isClosingUpgradeModal, setIsClosingUpgradeModal] = useState(false)
 
   // Password change modal state (moved to parent level)
   const [passwordModalVds, setPasswordModalVds] = useState<VdsServer | null>(null)
@@ -215,6 +223,40 @@ export function ServersTab({
       setChangingPassword(false)
     }
   }, [newPassword, passwordModalVds, closePasswordModal, changingPassword])
+
+  // Обработчик апгрейда сервера
+  const handleUpgradeServer = useCallback(async () => {
+    if (!upgradeModalServer || !selectedUpgradePlan || upgradingServerId) return
+    
+    setUpgradingServerId(upgradeModalServer.id)
+    try {
+      const res = await fetch(`/api/servers/${upgradeModalServer.id}/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPlanId: selectedUpgradePlan })
+      })
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
+        toast.success(data.message || 'Сервер успешно апгрейднут!')
+        setIsClosingUpgradeModal(true)
+        setTimeout(() => {
+          setUpgradeModalServer(null)
+          setSelectedUpgradePlan(null)
+          setIsClosingUpgradeModal(false)
+        }, 150)
+        // Перезагружаем список серверов
+        window.location.reload()
+      } else {
+        toast.error(data.error || 'Не удалось апгрейдить сервер')
+      }
+    } catch (error) {
+      console.error('Upgrade error:', error)
+      toast.error('Ошибка при апгрейде сервера')
+    } finally {
+      setUpgradingServerId(null)
+    }
+  }, [upgradeModalServer, selectedUpgradePlan, upgradingServerId])
 
   // Открыть панель VMManager через SSO
   const openVdsPanel = useCallback(async (hostId: number) => {
@@ -346,6 +388,7 @@ export function ServersTab({
                     onRenewServer={onRenewServer}
                     isRenewing={renewingServerId === server.id}
                     onStartupClick={() => setStartupModalServer(server)}
+                    onUpgradeClick={() => setUpgradeModalServer(server)}
                   />
                 )
               })}
@@ -373,6 +416,7 @@ export function ServersTab({
                     isRenewing={renewingServerId === server.id}
                     isCoding={true}
                     onStartupClick={() => setStartupModalServer(server)}
+                    onUpgradeClick={() => setUpgradeModalServer(server)}
                   />
                 )
               })}
@@ -713,6 +757,121 @@ export function ServersTab({
           }}
         />
       )}
+
+      {/* Модальное окно апгрейда тарифа */}
+      {upgradeModalServer && (
+        <div 
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${isClosingUpgradeModal ? 'animate-out fade-out duration-150' : 'animate-in fade-in duration-200'}`} 
+          onClick={() => {
+            setIsClosingUpgradeModal(true)
+            setTimeout(() => {
+              setUpgradeModalServer(null)
+              setSelectedUpgradePlan(null)
+              setIsClosingUpgradeModal(false)
+            }, 150)
+          }}
+        >
+          <div 
+            className={`bg-card border border-border rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto ${isClosingUpgradeModal ? 'animate-out zoom-out-95 duration-150' : 'animate-in zoom-in-95 duration-200'}`} 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="size-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                <Activity className="size-5 text-purple-500" />
+              </div>
+              <div>
+                <h3 className="font-heading text-lg font-bold text-foreground">Улучшить тариф</h3>
+                <p className="text-xs text-muted-foreground">Сервер: {upgradeModalServer.name}</p>
+              </div>
+            </div>
+            
+            <p className="text-sm text-muted-foreground mb-4">
+              Выберите новый тариф. Вы получите возврат за неиспользованное время текущего тарифа.
+            </p>
+            
+            <div className="grid gap-3 mb-4">
+              {plans
+                .filter(p => 
+                  p.category === upgradeModalServer.plan.category && 
+                  !p.isFree && 
+                  p.price > upgradeModalServer.plan.price &&
+                  p.id !== upgradeModalServer.planId
+                )
+                .sort((a, b) => a.price - b.price)
+                .map(plan => {
+                  const currentPrice = upgradeModalServer.plan.price + (upgradeModalServer.node?.priceModifier || 0)
+                  const newPrice = plan.price + (upgradeModalServer.node?.priceModifier || 0)
+                  const isSelected = selectedUpgradePlan === plan.id
+                  
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => setSelectedUpgradePlan(plan.id)}
+                      className={`text-left p-4 rounded-xl border-2 transition-all ${
+                        isSelected 
+                          ? 'border-purple-500 bg-purple-500/5' 
+                          : 'border-border/50 hover:border-border'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-foreground">{plan.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground line-through">{currentPrice} ₽</span>
+                          <span className="text-lg font-bold text-purple-500">{newPrice} ₽</span>
+                          <span className="text-xs text-muted-foreground">/мес</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><MemoryStick className="size-3.5" />{formatBytes(plan.ram)}</span>
+                        <span className="flex items-center gap-1"><Cpu className="size-3.5" />{plan.cpu}%</span>
+                        <span className="flex items-center gap-1"><HardDrive className="size-3.5" />{formatBytes(plan.disk)}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+            </div>
+
+            {plans.filter(p => 
+              p.category === upgradeModalServer.plan.category && 
+              !p.isFree && 
+              p.price > upgradeModalServer.plan.price &&
+              p.id !== upgradeModalServer.planId
+            ).length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Нет доступных тарифов для апгрейда</p>
+                <p className="text-xs mt-1">У вас уже максимальный тариф в этой категории</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setIsClosingUpgradeModal(true)
+                  setTimeout(() => {
+                    setUpgradeModalServer(null)
+                    setSelectedUpgradePlan(null)
+                    setIsClosingUpgradeModal(false)
+                  }, 150)
+                }}
+                className="flex-1 rounded-lg border border-border py-2 text-sm font-medium text-foreground hover:bg-muted/50 transition-all duration-200"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleUpgradeServer}
+                disabled={!selectedUpgradePlan || upgradingServerId === upgradeModalServer.id}
+                className="flex-1 rounded-lg bg-purple-500 py-2 text-sm font-medium text-white hover:bg-purple-600 transition-all duration-200 disabled:opacity-50"
+              >
+                {upgradingServerId === upgradeModalServer.id ? (
+                  <Loader2 className="size-4 animate-spin mx-auto" />
+                ) : (
+                  'Апгрейдить'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -1008,9 +1167,10 @@ interface ServerCardProps {
   isRenewing?: boolean
   isCoding?: boolean
   onStartupClick?: () => void
+  onUpgradeClick?: () => void
 }
 
-function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenewServer, isRenewing, isCoding = false, onStartupClick }: ServerCardProps) {
+function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenewServer, isRenewing, isCoding = false, onStartupClick, onUpgradeClick }: ServerCardProps) {
   const statusConfig = {
     ACTIVE: { color: 'emerald', label: 'Онлайн' },
     INSTALLING: { color: 'amber', label: 'Установка' },
@@ -1189,6 +1349,16 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                 >
                   <Terminal className="size-4" />
                   Команда запуска
+                </button>
+              )}
+              
+              {!server.plan.isFree && onUpgradeClick && (
+                <button
+                  onClick={onUpgradeClick}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/20 py-2 text-sm font-medium text-purple-500 hover:bg-purple-500/20 transition-colors duration-200"
+                >
+                  <Activity className="size-4" />
+                  Улучшить тариф
                 </button>
               )}
               

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { User, ServerData } from "../types"
 import { Wallet, Plus, ArrowUpRight, ArrowDownRight, Zap, Receipt, CreditCard, Bitcoin } from "lucide-react"
 import Image from "next/image"
+import { AlertsBanner } from "../alerts-banner"
 
 interface Transaction {
   id: string
@@ -45,6 +46,9 @@ export function BillingTab({ user, servers }: BillingTabProps) {
 
   return (
     <div className="max-w-5xl mx-auto pb-8 px-3 sm:px-4">
+      {/* Alerts */}
+      <AlertsBanner />
+
       {/* Hero */}
       <div className="relative rounded-2xl overflow-hidden mb-4 sm:mb-6 border border-border/50 bg-card/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="absolute inset-0" style={{ backgroundImage: 'url(/pay.jpg)', backgroundPosition: 'center', backgroundSize: 'cover' }} />
@@ -67,7 +71,7 @@ export function BillingTab({ user, servers }: BillingTabProps) {
 
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Пополнение */}
-        <div className="rounded-2xl border border-border/50 bg-card/30 p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
+        <div id="top-up-section" className="rounded-2xl border border-border/50 bg-card/30 p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <Plus className="size-3.5 sm:size-4 text-muted-foreground" />
             <h2 className="font-heading font-semibold text-sm sm:text-base text-foreground">Пополнение</h2>

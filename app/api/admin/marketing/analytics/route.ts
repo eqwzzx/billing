@@ -185,3 +185,54 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+
+// DELETE - Удалить события по источнику
+export async function DELETE(req: NextRequest) {
+  let user
+  try {
+    user = await requireAuth(req)
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (user.role !== 'ADMIN' && user.role !== 'PR_MANAGER') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
+    const body = await req.json()
+    const { source, medium, campaign } = body
+
+    if (!source) {
+      return NextResponse.json({ error: 'Источник обязателен' }, { status: 400 })
+    }
+
+    // Формируем условия для удаления
+    const where: any = {}
+    
+    if (source) where.utmSource = source
+    if (medium && medium !== 'none') where.utmMedium = medium
+    if (campaign && campaign !== 'none') where.utmCampaign = campaign
+
+    // Удаляем события
+    const result = await prisma.marketingEvent.deleteMany({
+      where
+    })
+
+    return NextResponse.json({
+      success: true,
+      deleted: result.count,
+      message: `Удалено ${result.count} событий`
+    })
+  } catch (error: any) {
+    console.error('[API] Error deleting marketing events:', error)
+
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        detail: process.env.NODE_ENV === 'production' ? undefined : String(error?.message || error),
+      },
+      { status: 500 }
+    )
+  }
+}
