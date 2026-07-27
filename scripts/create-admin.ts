@@ -7,7 +7,10 @@ const prisma = new PrismaClient()
 
 async function main() {
   const email = process.env.ADMIN_EMAIL || 'admin@fluxor.host'
-  const password = process.env.ADMIN_PASSWORD || 'admin123'
+  const password = process.env.ADMIN_PASSWORD
+  if (!password) {
+    throw new Error('ADMIN_PASSWORD is required (дефолтный пароль admin123 удалён)')
+  }
   const name = process.env.ADMIN_NAME || 'Administrator'
 
   console.log('Creating admin user...')

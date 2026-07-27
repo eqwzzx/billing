@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db'
 
 // GET - получить список кластеров из БД
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
 // POST - синхронизировать кластеры с VMManager
 export async function POST(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
 // PATCH - обновить кластер (включить/выключить, изменить countryCode)
 export async function PATCH(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

@@ -1,4 +1,5 @@
 import crypto from "crypto"
+import { secureCompare } from "./security"
 
 const MERCHANT_UUID = process.env.HELEKET_MERCHANT_ID!
 const PAYMENT_KEY = process.env.HELEKET_SECRET_KEY!
@@ -15,7 +16,6 @@ async function sendRequest<T>(endpoint: string, data: Record<string, unknown> = 
 
   console.log("[Heleket] Request to:", endpoint)
   console.log("[Heleket] Body:", body)
-  console.log("[Heleket] Sign:", sign)
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     method: "POST",
@@ -132,8 +132,19 @@ export interface HeleketWebhookPayload {
 }
 
 export function verifyWebhookSign(payload: HeleketWebhookPayload): boolean {
+  if (!PAYMENT_KEY) {
+    console.error("[Heleket] HELEKET_SECRET_KEY is not configured")
+    return false
+  }
+
   const { sign, ...data } = payload
+  if (!sign || typeof sign !== "string") return false
+
   const body = JSON.stringify(data)
-  const calculatedSign = crypto.createHash("md5").update(Buffer.from(body).toString("base64") + PAYMENT_KEY).digest("hex")
-  return calculatedSign.toLowerCase() === sign.toLowerCase()
+  const calculatedSign = crypto
+    .createHash("md5")
+    .update(Buffer.from(body).toString("base64") + PAYMENT_KEY)
+    .digest("hex")
+
+  return secureCompare(calculatedSign.toLowerCase(), sign.toLowerCase())
 }

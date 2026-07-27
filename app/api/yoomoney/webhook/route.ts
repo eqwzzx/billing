@@ -25,6 +25,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    if (data.codepro === "true") {
+      console.warn("[YooMoney] Rejected: protected transfer (codepro)", label)
+      return NextResponse.json({ status: "ignored", reason: "codepro" }, { status: 200 })
+    }
+
+    if (data.unaccepted === "true") {
+      console.warn("[YooMoney] Rejected: unaccepted transfer", label)
+      return NextResponse.json({ status: "ignored", reason: "unaccepted" }, { status: 200 })
+    }
+
     const orderParts = label.split("_")
     if (orderParts.length < 2) {
       console.error("[YooMoney] Invalid order format")

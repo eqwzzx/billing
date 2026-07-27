@@ -61,7 +61,13 @@ export async function POST(
       where: { name: rental.plan_name, category: 'VDS' }
     })
 
-    const price = plan?.price || rental.rental_price
+    if (!plan) {
+      return NextResponse.json(
+        { error: 'Тариф не найден, продление недоступно' },
+        { status: 404 }
+      )
+    }
+    const price = plan.price
 
     const user = await prisma.user.findUnique({
       where: { id: auth.userId }
@@ -71,7 +77,12 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (user.balance < price) {
+    const charged = await prisma.user.updateMany({
+      where: { id: auth.userId, balance: { gte: price } },
+      data: { balance: { decrement: price } }
+    })
+
+    if (charged.count === 0) {
       return NextResponse.json({ 
         error: 'Недостаточно средств',
         required: price,
@@ -82,13 +93,12 @@ export async function POST(
     const updatedRental = renewVMManager6Rental(rental.id, 30)
     
     if (!updatedRental) {
+      await prisma.user.update({
+        where: { id: auth.userId },
+        data: { balance: { increment: price } }
+      })
       return NextResponse.json({ error: 'Failed to renew rental' }, { status: 500 })
     }
-
-    await prisma.user.update({
-      where: { id: auth.userId },
-      data: { balance: { decrement: price } }
-    })
 
     await prisma.transaction.create({
       data: {

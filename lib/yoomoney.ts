@@ -46,6 +46,7 @@ export interface YooMoneyWebhookPayload {
   datetime?: string
   sender?: string
   codepro?: string
+  unaccepted?: string
   label?: string
   sha1_hash?: string
 }

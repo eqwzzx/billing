@@ -86,7 +86,10 @@ export default function MarketingAnalyticsPage() {
         setAnalytics(data.analytics || [])
         setTotals(data.totals || null)
       } else {
-        notify.error('Ошибка загрузки аналитики')
+        const err = await res.json().catch(() => null)
+        notify.error(err?.error || `Ошибка загрузки аналитики (${res.status})`)
+        setAnalytics([])
+        setTotals(null)
       }
     } catch (error) {
       notify.error('Ошибка загрузки данных')

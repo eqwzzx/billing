@@ -46,7 +46,9 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       return null
     }
 
-    const decoded = jwt.verify(token, getJwtSecret()) as unknown as { userId: string; email: string; role: string }
+    const decoded = jwt.verify(token, getJwtSecret(), {
+      algorithms: ['HS256'],
+    }) as unknown as { userId: string; email: string; role: string }
 
     return {
       id: decoded.userId,

@@ -9,7 +9,7 @@ import { getVmManager } from '@/vm6/VmManager'
 
 // GET - получить истёкшие аренды
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
 // POST - обработать истёкшие аренды (приостановить серверы)
 export async function POST(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

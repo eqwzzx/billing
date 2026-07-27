@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { prisma } from './db'
 
 // JWT_SECRET проверяется при использовании
 const getJwtSecret = (): string => {
@@ -21,7 +22,7 @@ export interface AuthPayload {
  * @param request - NextRequest объект
  * @returns AuthPayload если пользователь админ, null в противном случае
  */
-export function verifyAdminAuth(request: NextRequest): AuthPayload | null {
+export async function verifyAdminAuth(request: NextRequest): Promise<AuthPayload | null> {
   try {
     const token = request.cookies.get('auth-token')?.value
 
@@ -29,13 +30,20 @@ export function verifyAdminAuth(request: NextRequest): AuthPayload | null {
       return null
     }
 
-    const decoded = jwt.verify(token, getJwtSecret()) as unknown as AuthPayload
+    const decoded = jwt.verify(token, getJwtSecret(), {
+      algorithms: ['HS256'],
+    }) as unknown as AuthPayload
 
-    if (decoded.role !== 'ADMIN') {
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, email: true, role: true, banned: true },
+    })
+
+    if (!user || user.banned || user.role !== 'ADMIN') {
       return null
     }
 
-    return decoded
+    return { userId: user.id, email: user.email, role: user.role }
   } catch {
     return null
   }
@@ -54,7 +62,9 @@ export function verifyAuth(request: NextRequest): AuthPayload | null {
       return null
     }
 
-    const decoded = jwt.verify(token, getJwtSecret()) as unknown as AuthPayload
+    const decoded = jwt.verify(token, getJwtSecret(), {
+      algorithms: ['HS256'],
+    }) as unknown as AuthPayload
     return decoded
   } catch {
     return null
@@ -77,8 +87,8 @@ export function verifyAuth(request: NextRequest): AuthPayload | null {
  * @param request - NextRequest объект
  * @returns NextResponse с ошибкой 401/403 или null если авторизация успешна
  */
-export function requireAdminAuth(request: NextRequest): NextResponse | null {
-  const auth = verifyAdminAuth(request)
+export async function requireAdminAuth(request: NextRequest): Promise<NextResponse | null> {
+  const auth = await verifyAdminAuth(request)
 
   if (!auth) {
     return NextResponse.json(
@@ -117,10 +127,11 @@ export function requireAuth(request: NextRequest): NextResponse | null {
  * @param request - NextRequest объект
  * @returns { auth: AuthPayload } | { error: NextResponse }
  */
-export function getAdminOrError(request: NextRequest): 
+export async function getAdminOrError(request: NextRequest): Promise<
   | { auth: AuthPayload; error: null }
-  | { auth: null; error: NextResponse } {
-  const auth = verifyAdminAuth(request)
+  | { auth: null; error: NextResponse }
+> {
+  const auth = await verifyAdminAuth(request)
 
   if (!auth) {
     return {

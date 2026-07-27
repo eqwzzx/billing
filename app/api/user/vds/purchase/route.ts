@@ -15,6 +15,8 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
 }
 
+const VDS_RENTAL_DAYS = 30
+
 interface AuthPayload {
   userId: string
   email: string
@@ -70,25 +72,39 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { 
-      name, 
-      osId, 
-      planName, 
-      price, 
-      days,
-      preset,
-      ram,
-      cpu,
-      disk,
-      autoRenew = false
-    } = body
+    const { name, osId, planName, autoRenew = false } = body
 
-    // Валидация
-    if (!name || !osId || !planName || !price || !days) {
+    if (!name || !osId || !planName) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, osId, planName, price, days' },
+        { error: 'Missing required fields: name, osId, planName' },
         { status: 400 }
       )
+    }
+
+    if (typeof name !== 'string' || name.length > 64) {
+      return NextResponse.json({ error: 'Invalid server name' }, { status: 400 })
+    }
+
+    const plan = await prisma.plan.findFirst({
+      where: { name: planName, category: 'VDS', isActive: true },
+    })
+
+    if (!plan) {
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    }
+
+    const price = plan.price
+    const days = VDS_RENTAL_DAYS
+    const preset = plan.vmPresetId ?? undefined
+    const ram = plan.ram
+    const cpu = plan.cpu
+    const disk = plan.disk
+
+    const osImage = await prisma.vdsOsImage.findFirst({
+      where: { vmManagerId: Number(osId) },
+    })
+    if (!osImage) {
+      return NextResponse.json({ error: 'OS image not found' }, { status: 400 })
     }
 
     // Проверяем лимит ядер
@@ -116,24 +132,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    if (user.balance < price) {
+    // Генерируем пароль для VM
+    const vmPassword = generatePassword()
+
+    const charged = await prisma.user.updateMany({
+      where: { id: auth.userId, balance: { gte: price } },
+      data: { balance: { decrement: price } }
+    })
+
+    if (charged.count === 0) {
       return NextResponse.json(
         { error: 'Insufficient balance', required: price, current: user.balance },
         { status: 400 }
       )
     }
 
-    // Генерируем пароль для VM
-    const vmPassword = generatePassword()
-
-    // Списываем баланс
-    await prisma.user.update({
-      where: { id: auth.userId },
-      data: { balance: { decrement: price } }
-    })
-
-    // Создаём транзакцию
-    await prisma.transaction.create({
+    const paymentTx = await prisma.transaction.create({
       data: {
         userId: auth.userId,
         type: 'PAYMENT',
@@ -197,13 +211,8 @@ export async function POST(request: NextRequest) {
         data: { balance: { increment: price } }
       })
 
-      // Обновляем транзакцию как отменённую
-      await prisma.transaction.updateMany({
-        where: {
-          userId: auth.userId,
-          description: `Покупка VDS "${name}" на ${days} дней`,
-          status: 'COMPLETED'
-        },
+      await prisma.transaction.update({
+        where: { id: paymentTx.id },
         data: {
           status: 'FAILED',
           description: `Покупка VDS "${name}" - ОТМЕНЕНО (ошибка создания)`

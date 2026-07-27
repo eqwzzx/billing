@@ -16,7 +16,7 @@ if (!JWT_SECRET) {
 
 // GET - получить все апелляции
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
 // PATCH - обработать апелляцию
 export async function PATCH(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

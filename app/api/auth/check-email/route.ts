@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { validateEmail } from '@/lib/security'
+import { validateEmail, checkRateLimit, rateLimitResponse, getClientIp } from '@/lib/security'
 
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request)
+  const rateLimit = checkRateLimit(`check-email:${clientIp}`, {
+    maxRequests: 20,
+    windowMs: 10 * 60 * 1000,
+  })
+  if (!rateLimit.allowed) {
+    return rateLimitResponse(rateLimit.resetAt)
+  }
+
   try {
     const body = await request.json()
     const { email } = body

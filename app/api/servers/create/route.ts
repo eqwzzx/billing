@@ -10,9 +10,16 @@ import { sendDiscordLog } from '@/lib/discord'
 import { adminLogger } from '@/lib/admin-logger'
 import { generatePterodactylPassword, encryptPassword, decryptPassword } from '@/lib/pterodactyl-password'
 import { applyFirstOrderDiscount, markFirstOrderDiscountUsed, trackMarketingEvent } from '@/lib/marketing'
+import { verifyAuth } from '@/lib/auth-admin'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = verifyAuth(request)
+    if (!auth) {
+      return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    }
+    const userId = auth.userId
+
     // Проверяем не отключено ли создание серверов
     const serverCreationSetting = await prisma.adminSettings.findUnique({
       where: { key: 'serverCreationDisabled' }
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { userId, planId, nodeId, eggId, promoCode } = body
+    const { planId, nodeId, eggId, promoCode } = body
     
     const randomNames = ['Phoenix', 'Thunder', 'Shadow', 'Storm', 'Blaze', 'Frost', 'Nova', 'Vortex', 'Titan', 'Spark', 'Echo', 'Pulse', 'Drift', 'Flux', 'Apex']
     const crypto = require('crypto')
@@ -306,12 +313,14 @@ export async function POST(request: NextRequest) {
     
     const defaultValues: Record<string, string> = {
       'MINECRAFT_VERSION': 'latest',
+      'MC_VERSION': 'latest',
       'VERSION': 'latest',
       'SERVER_VERSION': '1.20.1',
       'VANILLA_VERSION': '1.20.1',
       'SERVER_JARFILE': 'server.jar',
       'BUNGEE_VERSION': 'latest',
       'JAVA_VERSION': '17',
+      'BUILD_TYPE': 'recommended',
       'STARTUP': 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}',
       'STARTUP_CMD': '/start.sh',
       'USER_UPLOAD': '0',
@@ -350,6 +359,36 @@ export async function POST(request: NextRequest) {
       allocationId: allocation.id,
     })
 
+    if (totalPrice > 0) {
+      const charged = await prisma.user.updateMany({
+        where: { id: userId, balance: { gte: totalPrice } },
+        data: { balance: { decrement: totalPrice } },
+      })
+      if (charged.count === 0) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { balance: true },
+        })
+        return NextResponse.json({
+          error: 'Недостаточно средств на балансе',
+          required: totalPrice,
+          current: fresh?.balance ?? 0,
+        }, { status: 400 })
+      }
+    }
+
+    const refund = async () => {
+      if (totalPrice <= 0) return
+      try {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { balance: { increment: totalPrice } },
+        })
+      } catch (e) {
+        console.error('[Create Server] CRITICAL: refund failed for user', userId, totalPrice, e)
+      }
+    }
+
     let pterodactylServer
     try {
       pterodactylServer = await createServer({
@@ -372,6 +411,7 @@ export async function POST(request: NextRequest) {
       console.log('[Create Server] Pterodactyl server created successfully:', pterodactylServer.id)
     } catch (pteroError) {
       console.error('[Create Server] Pterodactyl error:', pteroError)
+      await refund()
       const errorMsg = pteroError instanceof Error ? pteroError.message : String(pteroError)
       
       // Проверяем на ошибку подключения к Wings
@@ -426,26 +466,28 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    const server = await prisma.server.create({
-      data: {
-        name,
-        userId,
-        planId,
-        nodeId,
-        eggId: egg.id,
-        pterodactylId: pterodactylServer.id,
-        pterodactylUuid: pterodactylServer.uuid,
-        pterodactylIdentifier: pterodactylServer.identifier,
-        status: 'INSTALLING',
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        paidAmount: totalPrice, // Сохраняем фактически оплаченную сумму
-      },
-    })
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { balance: { decrement: totalPrice } },
-    })
+    let server
+    try {
+      server = await prisma.server.create({
+        data: {
+          name,
+          userId,
+          planId,
+          nodeId,
+          eggId: egg.id,
+          pterodactylId: pterodactylServer.id,
+          pterodactylUuid: pterodactylServer.uuid,
+          pterodactylIdentifier: pterodactylServer.identifier,
+          status: 'INSTALLING',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          paidAmount: totalPrice, // Сохраняем фактически оплаченную сумму
+        },
+      })
+    } catch (dbError) {
+      await refund()
+      console.error('[Create Server] DB write failed, ptero server orphaned:', pterodactylServer.id, dbError)
+      return NextResponse.json({ error: 'Ошибка сохранения сервера' }, { status: 500 })
+    }
 
     // Помечаем что пользователь использовал скидку первого заказа
     if (firstOrderDiscountApplied) {

@@ -9,7 +9,7 @@ import { getVMManager6API } from '@/vm6/vmmanager6'
 
 // GET - получить реальные ноды из VMManager6 с логированием
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

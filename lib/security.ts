@@ -32,6 +32,9 @@ setInterval(() => {
 // Предупреждение при старте в production
 if (process.env.NODE_ENV === 'production') {
   console.warn('[Security] ⚠️  Using in-memory rate limiting. Consider using Redis for production with multiple instances.')
+  if (!process.env.TRUSTED_PROXY) {
+    console.warn('[Security] ⚠️  TRUSTED_PROXY is not set — client IP is taken from x-forwarded-for and can be spoofed. Rate limiting is unreliable.')
+  }
 }
 
 export interface RateLimitConfig {
@@ -214,26 +217,31 @@ export function validateAmount(amount: unknown): { valid: boolean; value: number
 // Request Helpers
 // ============================================================================
 
-export function getClientIp(request: NextRequest): string {
-  const trusted =
-    request.headers.get('cdn-real-ip') ||       // Bunny.net
-    request.headers.get('x-pullzone-ip') ||     // Bunny.net
-    request.headers.get('x-bunny-ip') ||        // Bunny.net
-    request.headers.get('cf-connecting-ip') ||  // Cloudflare
-    request.headers.get('true-client-ip')       // Cloudflare Enterprise
+const TRUSTED_PROXY = (process.env.TRUSTED_PROXY || '').toLowerCase()
 
-  if (trusted) return trusted.trim()
+const PROXY_IP_HEADERS: Record<string, string[]> = {
+  cloudflare: ['cf-connecting-ip', 'true-client-ip'],
+  bunny: ['cdn-real-ip', 'x-pullzone-ip', 'x-bunny-ip'],
+  vercel: ['x-vercel-forwarded-for', 'x-real-ip'],
+}
+
+export function getClientIp(request: NextRequest): string {
+  const headers = PROXY_IP_HEADERS[TRUSTED_PROXY]
+
+  if (headers) {
+    for (const header of headers) {
+      const value = request.headers.get(header)
+      if (value) return value.split(',')[0].trim()
+    }
+    return 'unknown'
+  }
 
   const forwardedFor = request.headers.get('x-forwarded-for')
   if (forwardedFor) {
     return forwardedFor.split(',')[0].trim()
   }
 
-  return (
-    request.headers.get('x-real-ip') ||
-    request.headers.get('x-client-ip') ||
-    'unknown'
-  )
+  return request.headers.get('x-real-ip') || 'unknown'
 }
 
 export function getUserAgent(request: NextRequest): string {

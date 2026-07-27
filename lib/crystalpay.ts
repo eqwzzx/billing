@@ -1,4 +1,5 @@
 import crypto from "crypto"
+import { secureCompare } from "./security"
 
 const AUTH_LOGIN = process.env.CRYSTALPAY_LOGIN!
 const AUTH_SECRET = process.env.CRYSTALPAY_SECRET!
@@ -94,19 +95,19 @@ export interface CrystalPayWebhookPayload {
 }
 
 export function verifyWebhookSignature(payload: CrystalPayWebhookPayload): boolean {
-  const { signature, ...data } = payload
-  
-  const signString = `${data.id}:${data.amount}:${SALT}`
+  if (!SALT) {
+    console.error("[CrystalPay] CRYSTALPAY_SALT is not configured")
+    return false
+  }
+
+  const { signature } = payload
+  if (!signature || typeof signature !== "string") return false
+
+  const signString = `${payload.id}:${payload.amount}:${SALT}`
   const calculatedSignature = crypto
     .createHash("sha1")
     .update(signString)
     .digest("hex")
 
-  console.log("[CrystalPay] Signature verification:", {
-    received: signature,
-    calculated: calculatedSignature,
-    match: calculatedSignature === signature,
-  })
-
-  return calculatedSignature === signature
+  return secureCompare(calculatedSignature.toLowerCase(), signature.toLowerCase())
 }

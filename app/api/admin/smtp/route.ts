@@ -4,7 +4,7 @@ import { requireAdminAuth } from '@/lib/auth-admin'
 
 // GET - получить настройки SMTP
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
 // POST - сохранить настройки SMTP
 export async function POST(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
 // PUT - тест SMTP
 export async function PUT(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

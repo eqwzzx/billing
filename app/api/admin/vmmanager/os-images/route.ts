@@ -10,7 +10,7 @@ import { prisma } from '@/lib/db'
 
 // GET - получить список ОС (из БД с флагом isActive)
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
 // POST - синхронизировать ОС с VMManager
 export async function POST(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
 // PATCH - обновить статус ОС (включить/выключить)
 export async function PATCH(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

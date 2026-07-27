@@ -7,11 +7,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
-    const session = verifyAdminAuth(request)
+    const session = await verifyAdminAuth(request)
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

@@ -6,8 +6,14 @@ import { liftAllExpiredBans } from '@/lib/ban'
 export async function GET(req: NextRequest) {
   try {
     // Проверяем секретный ключ для cron
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+      console.error('[Cron Services] CRON_SECRET not configured')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

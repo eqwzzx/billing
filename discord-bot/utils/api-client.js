@@ -3,7 +3,10 @@
  */
 
 const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const API_SECRET = process.env.INTERNAL_WEBHOOK_SECRET || 'fluxor-internal-webhook';
+const API_SECRET = process.env.INTERNAL_WEBHOOK_SECRET;
+if (!API_SECRET) {
+  throw new Error('INTERNAL_WEBHOOK_SECRET is required');
+}
 
 /**
  * Получить информацию о пользователе

@@ -12,7 +12,7 @@ import { sendVdsDeletedEmail } from '@/lib/email'
 
 // GET - получить список всех VDS серверов
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
 
 // POST - действия с серверами (start, stop, restart, suspend, resume, delete, ban)
 export async function POST(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

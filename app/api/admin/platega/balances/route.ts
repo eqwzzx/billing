@@ -3,7 +3,7 @@ import { requireAdminAuth } from "@/lib/auth-admin"
 import { getBalances } from "@/lib/platega"
 
 export async function GET(request: NextRequest) {
-  const authError = requireAdminAuth(request)
+  const authError = await requireAdminAuth(request)
   if (authError) return authError
 
   try {

@@ -4,12 +4,18 @@ import { requireAuth } from '@/lib/auth'
 
 // GET - Получить маркетинговую аналитику
 export async function GET(req: NextRequest) {
+  let user
   try {
-    const user = await requireAuth(req)
-    if (user.role !== 'ADMIN' && user.role !== 'PR_MANAGER') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
+    user = await requireAuth(req)
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
+  if (user.role !== 'ADMIN' && user.role !== 'PR_MANAGER') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
     const { searchParams } = new URL(req.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
@@ -18,11 +24,27 @@ export async function GET(req: NextRequest) {
 
     // Формируем условия для фильтрации
     const where: any = {}
-    
+
     if (startDate || endDate) {
       where.createdAt = {}
-      if (startDate) where.createdAt.gte = new Date(startDate)
-      if (endDate) where.createdAt.lte = new Date(endDate)
+
+      if (startDate) {
+        const from = new Date(startDate)
+        if (isNaN(from.getTime())) {
+          return NextResponse.json({ error: 'Некорректная дата начала' }, { status: 400 })
+        }
+        from.setHours(0, 0, 0, 0)
+        where.createdAt.gte = from
+      }
+
+      if (endDate) {
+        const to = new Date(endDate)
+        if (isNaN(to.getTime())) {
+          return NextResponse.json({ error: 'Некорректная дата окончания' }, { status: 400 })
+        }
+        to.setHours(23, 59, 59, 999)
+        where.createdAt.lte = to
+      }
     }
     
     if (source) where.utmSource = source
@@ -133,8 +155,33 @@ export async function GET(req: NextRequest) {
         end: endDate,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API] Error fetching marketing analytics:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+
+    if (error?.code === 'P2021' || error?.code === 'P2022') {
+      return NextResponse.json(
+        {
+          error: 'Таблица MarketingEvent отсутствует в базе. Выполните: npx prisma db push',
+          code: error.code,
+        },
+        { status: 503 }
+      )
+    }
+
+    if (error?.code === 'P1001' || error?.code === 'P1002') {
+      return NextResponse.json(
+        { error: 'Нет соединения с базой данных', code: error.code },
+        { status: 503 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        code: error?.code,
+        detail: process.env.NODE_ENV === 'production' ? undefined : String(error?.message || error),
+      },
+      { status: 500 }
+    )
   }
 }
