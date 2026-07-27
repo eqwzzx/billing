@@ -165,18 +165,11 @@ async function createStatusEmbed() {
     }
   }
   
-  // Добавляем время последнего обновления
-  const lastCheck = services[0]?.lastCheck;
-  if (lastCheck) {
-    const timestamp = Math.floor(new Date(lastCheck).getTime() / 1000);
-    embed.setFooter({ 
-      text: `Обновляется каждые 3 минуты • Последняя проверка` 
-    });
-    embed.setTimestamp(new Date(lastCheck));
-  } else {
-    embed.setFooter({ text: 'Обновляется каждые 3 минуты' });
-    embed.setTimestamp();
-  }
+  // Добавляем время обновления - всегда текущее время
+  embed.setFooter({ 
+    text: `Обновляется каждые 3 минуты • Последнее обновление` 
+  });
+  embed.setTimestamp(); // Используем текущее время при каждом обновлении
   
   return embed;
 }
