@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { amount, promoCode } = body
 
-    if (!amount || typeof amount !== "number" || amount < 10) {
-      return NextResponse.json({ error: "Минимальная сумма: 10 ₽" }, { status: 400 })
+    if (!amount || typeof amount !== "number" || amount < 50) {
+      return NextResponse.json({ error: "Минимальная сумма: 50 ₽" }, { status: 400 })
     }
 
     if (amount > 100000) {

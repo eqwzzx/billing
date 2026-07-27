@@ -35,7 +35,7 @@ export function BillingTab({ user, servers }: BillingTabProps) {
 
   const handlePayment = () => {
     const amount = selectedAmount || parseInt(customAmount) || 0
-    if (amount >= 10) router.push(`/payments?amount=${amount}`)
+    if (amount >= 50) router.push(`/payments?amount=${amount}`)
   }
 
   const amounts = [100, 250, 500, 1000]
@@ -94,12 +94,12 @@ export function BillingTab({ user, servers }: BillingTabProps) {
               type="number"
               value={customAmount}
               onChange={(e) => { setCustomAmount(e.target.value); setSelectedAmount(null) }}
-              placeholder="Своя сумма (мин. 10₽)"
+              placeholder="Своя сумма (мин. 50₽)"
               className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-border/50 bg-card/50 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground/50 transition-all duration-200"
             />
             <button
               onClick={handlePayment}
-              disabled={!selectedAmount && (!customAmount || parseInt(customAmount) < 10)}
+              disabled={!selectedAmount && (!customAmount || parseInt(customAmount) < 50)}
               className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-foreground text-background text-xs sm:text-sm font-medium hover:bg-foreground/90 disabled:opacity-50 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             >
               <Zap className="size-3.5 sm:size-4" />

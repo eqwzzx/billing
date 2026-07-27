@@ -8,21 +8,21 @@ import { formatPrice as formatCurrency, type Currency, updateCurrencyRates } fro
 
 
 const vdsPlansPromo = [
-  { name: "PROMO-1", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 1, ram: "2 ГБ", disk: "20 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 110 },
-  { name: "PROMO-2", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 3, ram: "4 ГБ", disk: "40 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 199 },
-  { name: "PROMO-3", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 4, ram: "6 ГБ", disk: "60 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 299 },
-  { name: "PROMO-4", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 5, ram: "12 ГБ", disk: "80 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 429 },
-  { name: "PROMO-5", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 6, ram: "16 ГБ", disk: "100 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 579 },
-  { name: "PROMO-6", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 8, ram: "24 ГБ", disk: "150 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 799 },
+  { name: "PROMO-1", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 1, ram: "2 ГБ", disk: "20 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 110 },
+  { name: "PROMO-2", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 3, ram: "4 ГБ", disk: "40 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 199 },
+  { name: "PROMO-3", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 4, ram: "6 ГБ", disk: "60 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 299 },
+  { name: "PROMO-4", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 5, ram: "12 ГБ", disk: "80 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 429 },
+  { name: "PROMO-5", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 6, ram: "16 ГБ", disk: "100 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 579 },
+  { name: "PROMO-6", cpu: "AMD Ryzen 7 1700X PRO", vcpu: 8, ram: "24 ГБ", disk: "150 ГБ", diskType: "NVMe", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 799 },
 ]
 
 const vdsPlansStandard = [
-  { name: "DE-1", cpu: "Intel Core i5-12500", vcpu: 1, ram: "2 ГБ", disk: "40 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 149 },
-  { name: "DE-2", cpu: "Intel Core i5-12500", vcpu: 2, ram: "4 ГБ", disk: "80 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 319 },
-  { name: "DE-3", cpu: "Intel Core i5-12500", vcpu: 4, ram: "8 ГБ", disk: "160 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 520 },
-  { name: "DE-4", cpu: "Intel Core i5-12500", vcpu: 6, ram: "16 ГБ", disk: "240 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 859 },
-  { name: "DE-5", cpu: "Intel Core i5-12500", vcpu: 8, ram: "24 ГБ", disk: "240 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 1099 },
-  { name: "DE-6", cpu: "Intel Core i5-12500", vcpu: 12, ram: "32 ГБ", disk: "450 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Germany", flag: "/de.png", price: 1599 },
+  { name: "FI-1", cpu: "Intel Core i5-12500", vcpu: 1, ram: "2 ГБ", disk: "40 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 149 },
+  { name: "FI-2", cpu: "Intel Core i5-12500", vcpu: 2, ram: "4 ГБ", disk: "80 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 319 },
+  { name: "FI-3", cpu: "Intel Core i5-12500", vcpu: 4, ram: "8 ГБ", disk: "160 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 520 },
+  { name: "FI-4", cpu: "Intel Core i5-12500", vcpu: 6, ram: "16 ГБ", disk: "240 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 859 },
+  { name: "FI-5", cpu: "Intel Core i5-12500", vcpu: 8, ram: "24 ГБ", disk: "240 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 1099 },
+  { name: "FI-6", cpu: "Intel Core i5-12500", vcpu: 12, ram: "32 ГБ", disk: "450 ГБ", diskType: "SSD", network: "1 Гбит/с", location: "Finland", flag: "/finland.png", price: 1599 },
 ]
 
 // Новые тарифы Coding из файла ТАРИФЫ

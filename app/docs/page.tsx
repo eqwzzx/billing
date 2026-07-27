@@ -877,7 +877,7 @@ privacy: {
             адресу:
           </p>
 
-          <p className="mt-2 font-medium">legal@fluxor.example</p>
+          <p className="mt-2 font-medium">legal@fluxor.solutions</p>
         </div>
 
         <div>

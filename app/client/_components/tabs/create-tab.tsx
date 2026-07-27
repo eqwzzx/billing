@@ -360,17 +360,17 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
                       </button>
                       <button
                         onClick={() => {
-                          setVdsLocation("RU")
+                          setVdsLocation("FI")
                           setSelectedPlan(null)
                         }}
                         className={`flex-1 flex items-center justify-center gap-2.5 rounded-xl border px-4 py-3 transition-all duration-200 ${
-                          vdsLocation === "RU" 
+                          vdsLocation === "FI" 
                             ? "border-foreground bg-foreground text-background scale-[1.02]" 
                             : "border-border/50 bg-card/30 text-foreground hover:border-border hover:bg-card/50"
                         }`}
                       >
-                        <img src="/ru.png" alt="Russia" className="size-5 rounded" />
-                        <span className="font-medium text-sm">Russia</span>
+                        <img src="/finland.png" alt="Finland" className="size-5 rounded" />
+                        <span className="font-medium text-sm">Finland</span>
                       </button>
                     </div>
                   </div>
@@ -386,7 +386,7 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
                     ? (p.vdsLocation ? p.vdsLocation === "DE" : planName.includes("DE"))
                     : (p.vdsLocation 
                         ? p.vdsLocation === vdsLocation 
-                        : (vdsLocation === "DE" ? planName.includes("DE") : planName.includes("RU")))
+                        : (vdsLocation === "DE" ? planName.includes("DE") : planName.includes("FI")))
                   
                   return matchesSubCategory && matchesLocation
                 }).length === 0 ? (
@@ -419,7 +419,7 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
                         ? (p.vdsLocation ? p.vdsLocation === "DE" : planName.includes("DE"))
                         : (p.vdsLocation 
                             ? p.vdsLocation === vdsLocation 
-                            : (vdsLocation === "DE" ? planName.includes("DE") : planName.includes("RU")))
+                            : (vdsLocation === "DE" ? planName.includes("DE") : planName.includes("FI")))
                       
                       return matchesSubCategory && matchesLocation
                     }).map((plan) => (

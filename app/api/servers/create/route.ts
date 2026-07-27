@@ -312,28 +312,65 @@ export async function POST(request: NextRequest) {
     }
     
     const defaultValues: Record<string, string> = {
+      // Общие Minecraft переменные
       'MINECRAFT_VERSION': 'latest',
       'MC_VERSION': 'latest',
       'VERSION': 'latest',
       'SERVER_VERSION': '1.20.1',
       'VANILLA_VERSION': '1.20.1',
       'SERVER_JARFILE': 'server.jar',
-      'BUNGEE_VERSION': 'latest',
       'JAVA_VERSION': '17',
+      
+      // Forge / NeoForge
       'BUILD_TYPE': 'recommended',
+      'FORGE_VERSION': 'recommended',
+      'NEOFORGE_VERSION': 'latest',
+      
+      // Fabric
+      'FABRIC_VERSION': 'latest',
+      'LOADER_VERSION': 'latest',
+      'INSTALLER_VERSION': 'latest',
+      
+      // Spigot / Paper / Purpur
+      'SPIGOT_VERSION': 'latest',
+      'PAPER_VERSION': 'latest',
+      'PURPUR_VERSION': 'latest',
+      'BUILD_NUMBER': 'latest',
+      
+      // Magma
+      'MAGMA_VERSION': 'latest',
+      
+      // BungeeCord / Waterfall
+      'BUNGEE_VERSION': 'latest',
+      'WATERFALL_VERSION': 'latest',
+      
+      // Velocity
+      'VELOCITY_VERSION': 'latest',
+      'VELOCITY_BUILD': 'latest',
+      
+      // Sponge
+      'SPONGE_VERSION': 'latest',
+      
+      // Общие настройки
       'STARTUP': 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}',
       'STARTUP_CMD': '/start.sh',
       'USER_UPLOAD': '0',
       'AUTO_UPDATE': '0',
+      
+      // Python
       'PY_VERSION': '3.11',
       'PY_FILE': 'main.py',
       'PY_PACKAGES': '',
+      
+      // Node.js
       'NODE_VERSION': '18',
       'MAIN_FILE': 'index.js',
       'JS_FILE': 'index.js',
       'NODE_ARGS': '',
       'NODE_PACKAGES': '',
       'UNNODE_PACKAGES': '',
+      
+      // Git
       'GIT_ADDRESS': '',
       'GIT_BRANCH': '',
       'REQUIREMENTS_FILE': 'requirements.txt',
