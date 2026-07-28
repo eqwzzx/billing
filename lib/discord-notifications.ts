@@ -11,9 +11,14 @@ const WEBHOOK_SECRET = process.env.INTERNAL_WEBHOOK_SECRET;
 async function sendWebhook(type: string, data: any) {
   try {
     if (!WEBHOOK_URL || !WEBHOOK_SECRET) {
-      console.log('⚠️ Discord webhook не настроен, пропускаем уведомление');
+      console.log(`⚠️ [Discord Webhook] Не настроен, пропускаем уведомление ${type}`);
+      console.log(`⚠️ [Discord Webhook] WEBHOOK_URL: ${WEBHOOK_URL ? 'установлен' : 'НЕ УСТАНОВЛЕН'}`);
+      console.log(`⚠️ [Discord Webhook] WEBHOOK_SECRET: ${WEBHOOK_SECRET ? 'установлен' : 'НЕ УСТАНОВЛЕН'}`);
       return false;
     }
+
+    console.log(`📤 [Discord Webhook] Отправка ${type} на ${WEBHOOK_URL}`);
+    console.log(`📤 [Discord Webhook] Данные:`, JSON.stringify(data, null, 2));
 
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
@@ -25,14 +30,15 @@ async function sendWebhook(type: string, data: any) {
     });
 
     if (!response.ok) {
-      console.error('❌ Ошибка отправки webhook в Discord:', response.status);
+      const errorText = await response.text();
+      console.error(`❌ [Discord Webhook] Ошибка ${response.status}: ${errorText}`);
       return false;
     }
 
-    console.log(`✅ Отправлено уведомление в Discord: ${type}`);
+    console.log(`✅ [Discord Webhook] Успешно отправлено: ${type}`);
     return true;
   } catch (error) {
-    console.error('❌ Ошибка отправки webhook:', error);
+    console.error(`❌ [Discord Webhook] Ошибка отправки:`, error);
     return false;
   }
 }
@@ -46,6 +52,7 @@ export async function sendBalanceNotification(data: {
   newBalance: number;
   description: string;
   isAddition: boolean;
+  method?: string;
 }) {
   // Получаем данные пользователя из БД
   const { prisma } = await import('@/lib/db');
@@ -66,11 +73,13 @@ export async function sendBalanceNotification(data: {
     return false;
   }
 
+  console.log(`[Balance Notification] Пользователь: ${user.email}, discordId: ${user.discordId || 'НЕ ПРИВЯЗАН'}`);
+
   return await sendWebhook('BALANCE', {
     id: `balance_${Date.now()}`,
     userId: user.id,
     amount: data.isAddition ? data.amount : -data.amount,
-    method: 'MANUAL',
+    method: data.method || 'MANUAL',
     description: data.description,
     createdAt: new Date().toISOString(),
     user: {
@@ -241,7 +250,8 @@ export async function notifyBalanceDeposit(data: {
     amount: data.amount,
     newBalance: data.newBalance,
     description: data.description,
-    isAddition: true
+    isAddition: true,
+    method: data.method
   });
 }
 
