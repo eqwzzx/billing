@@ -11,6 +11,7 @@ export type AdminLogAction =
   | 'SERVER_DELETE'
   | 'SERVER_SUSPEND'
   | 'SERVER_UNSUSPEND'
+  | 'SERVER_UPGRADE'
   | 'VDS_CREATE'
   | 'VDS_DELETE'
   | 'VDS_SUSPEND'
@@ -96,6 +97,12 @@ export async function logAdminAction({
 
 // Вспомогательные функции для часто используемых логов
 export const adminLogger = {
+  // Универсальный метод для логирования
+  log: (params: Omit<LogParams, 'ipAddress' | 'userAgent'>) =>
+    logAdminAction({
+      ...params,
+    }),
+
   userLogin: (userId: string, ipAddress?: string, userAgent?: string) =>
     logAdminAction({
       action: 'USER_LOGIN',
