@@ -277,6 +277,10 @@ model User {
   pterodactylId        Int?               @unique(map: "User_pterodactylId_key")
   pterodactylPassword  String? // Зашифрованный пароль для Pterodactyl
   emailVerified        Boolean            @default(false)
+  // Двухфакторная аутентификация
+  twoFactorEnabled     Boolean            @default(false)
+  twoFactorSecret      String? // Секретный ключ для TOTP
+  twoFactorBackupCodes String?            @db.Text // JSON массив backup кодов
   // Блокировка пользователя
   banned               Boolean            @default(false)
   banType              ban_type           @default(NONE)

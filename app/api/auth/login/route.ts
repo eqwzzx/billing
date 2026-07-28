@@ -70,6 +70,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Неверный email или пароль' }, { status: 401 })
     }
 
+    // Проверяем, включена ли 2FA
+    if (user.twoFactorEnabled) {
+      // Требуется подтверждение через 2FA
+      return NextResponse.json({
+        requiresTwoFactor: true,
+        email: user.email,
+        message: 'Требуется код двухфакторной аутентификации'
+      }, { status: 200 })
+    }
+
     await liftExpiredBanForUser(user)
 
     const token = jwt.sign(
