@@ -431,23 +431,29 @@ export async function updateServerBuild(serverId: number, params: {
   allocations?: number
   allocationId?: number
 }): Promise<PterodactylServer> {
+  const body: any = {
+    limits: {
+      memory: params.ram,
+      swap: 0,
+      disk: params.disk,
+      io: 500,
+      cpu: params.cpu,
+    },
+    feature_limits: {
+      databases: params.databases,
+      backups: params.backups,
+      allocations: params.allocations,
+    },
+  }
+
+  // Добавляем allocation только если указан
+  if (params.allocationId !== undefined) {
+    body.allocation = params.allocationId
+  }
+
   const response = await pterodactylFetch<PterodactylResponse<PterodactylServer>>(`/servers/${serverId}/build`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      allocation: params.allocationId,
-      limits: {
-        memory: params.ram,
-        swap: 0,
-        disk: params.disk,
-        io: 500,
-        cpu: params.cpu,
-      },
-      feature_limits: {
-        databases: params.databases,
-        backups: params.backups,
-        allocations: params.allocations,
-      },
-    }),
+    body: JSON.stringify(body),
   })
   return response.attributes
 }

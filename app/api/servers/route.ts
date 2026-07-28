@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
               // Установка завершена, сервер запущен
               newStatus = 'ACTIVE'
             } else if (server.status === 'INSTALLING' && (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting')) {
-              // Сервер установлен и перезапускается
+              // Сервер установлен и выполняет действие
               newStatus = 'RESTARTING'
             } else if (server.status === 'INSTALLING' && (statusData.state === 'offline' || statusData.state === 'stopped')) {
               // Сервер установлен, но выключен
@@ -92,10 +92,13 @@ export async function GET(request: NextRequest) {
               const now = new Date()
               const minutesAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60)
               
-              // Даём 3 минуты на установку, после этого считаем что сервер просто выключен
-              if (minutesAgo > 3) {
+              // Даём 5 минут на установку, после этого считаем что установка завершена
+              // и сервер просто выключен пользователем
+              if (minutesAgo > 5) {
+                console.log(`[Server ${server.id}] Installation timeout (${minutesAgo.toFixed(1)} min) - marking as OFF`)
                 newStatus = 'OFF'
               } else {
+                // Ещё в процессе установки
                 newStatus = 'INSTALLING'
               }
             } else if (statusData.state === 'starting') {
@@ -105,11 +108,12 @@ export async function GET(request: NextRequest) {
             } else if (statusData.state === 'restarting') {
               newStatus = 'RESTARTING'
             } else if (statusData.state === 'stopped' || statusData.state === 'offline') {
+              // Сервер не в процессе установки и выключен
               newStatus = 'OFF'
             } else if (statusData.state === 'running') {
               newStatus = 'ACTIVE'
             } else {
-              // Неизвестное состояние - если был активен, оставляем активным
+              // Неизвестное состояние
               newStatus = server.status === 'ACTIVE' ? 'ACTIVE' : 'OFF'
             }
             

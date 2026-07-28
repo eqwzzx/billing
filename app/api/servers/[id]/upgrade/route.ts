@@ -102,10 +102,10 @@ export async function POST(
     const refundAmount = Math.round((paidAmount / totalTime) * remainingTime)
     
     // Стоимость нового тарифа за оставшееся время
-    const upgradeCost = Math.round((newPlanPrice / totalTime) * remainingTime)
+    const newPlanCost = Math.round((newPlanPrice / totalTime) * remainingTime)
     
-    // Итоговая сумма к оплате (разница)
-    const totalCost = upgradeCost - refundAmount
+    // Итоговая сумма к оплате = стоимость нового тарифа - возврат за старый
+    const totalCost = newPlanCost - refundAmount
 
     if (totalCost < 0) {
       return NextResponse.json({ 
@@ -119,7 +119,7 @@ export async function POST(
         required: totalCost,
         current: user.balance,
         refund: refundAmount,
-        upgradeCost,
+        newPlanCost,
         remainingDays: Math.round(remainingDays),
       }, { status: 400 })
     }
@@ -132,18 +132,20 @@ export async function POST(
     }
 
     try {
+      // Обновляем build сервера (без изменения allocation/порта)
       await updateServerBuild(server.pterodactylId, {
-        memory: newPlan.ram,
+        ram: newPlan.ram,
         cpu: newPlan.cpu,
         disk: newPlan.disk,
         databases: newPlan.databases,
         backups: newPlan.backups,
-        allocations: newPlan.allocations,
+        allocations: newPlan.allocations || 1,
       })
-    } catch (pteroError) {
+    } catch (pteroError: any) {
       console.error('[Upgrade Server] Pterodactyl error:', pteroError)
+      const errorMsg = pteroError?.message || 'Неизвестная ошибка'
       return NextResponse.json({ 
-        error: 'Ошибка обновления сервера в панели управления' 
+        error: 'Ошибка обновления сервера в панели управления: ' + errorMsg 
       }, { status: 500 })
     }
 
@@ -158,7 +160,7 @@ export async function POST(
       where: { id: server.id },
       data: {
         planId: newPlan.id,
-        paidAmount: upgradeCost, // Новая стоимость за оставшееся время
+        paidAmount: newPlanCost, // Новая стоимость за оставшееся время
       },
     })
 
