@@ -13,6 +13,7 @@ export type DiscordLogType =
   | 'REFUND'       // Возврат средств
   | 'SERVER_CREATE'// Создание сервера
   | 'SERVER_DELETE'// Удаление сервера
+  | 'SERVER_UPGRADE'// Апгрейд сервера
   | 'PROMO'        // Использование промокода
   | 'REGISTER'     // Регистрация пользователя
 
@@ -35,6 +36,7 @@ const typeConfig: Record<DiscordLogType, { emoji: string; color: number; title: 
   REFUND: { emoji: '↩️', color: 0xf59e0b, title: 'Возврат средств' },
   SERVER_CREATE: { emoji: '🚀', color: 0x06b6d4, title: 'Создание сервера' },
   SERVER_DELETE: { emoji: '🗑️', color: 0xef4444, title: 'Удаление сервера' },
+  SERVER_UPGRADE: { emoji: '⬆️', color: 0x10b981, title: 'Апгрейд сервера' },
   PROMO: { emoji: '🎁', color: 0xec4899, title: 'Промокод активирован' },
   REGISTER: { emoji: '👤', color: 0x6366f1, title: 'Новый пользователь' },
 }

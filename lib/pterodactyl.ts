@@ -275,7 +275,12 @@ export async function getPterodactylServerStatus(uuid: string): Promise<{ state:
   const PTERODACTYL_CLIENT_KEY = process.env.PTERODACTYL_CLIENT_KEY
   
   if (!PTERODACTYL_URL || !PTERODACTYL_CLIENT_KEY) {
-    throw new Error('Pterodactyl client credentials not configured')
+    console.warn('[Pterodactyl] Client credentials not configured, using fallback')
+    // Если CLIENT_KEY не настроен, возвращаем unknown статус вместо ошибки
+    return {
+      state: 'unknown',
+      is_suspended: false,
+    }
   }
 
   const controller = new AbortController()
@@ -302,6 +307,15 @@ export async function getPterodactylServerStatus(uuid: string): Promise<{ state:
       }
     }
 
+    if (response.status === 401 || response.status === 403) {
+      console.warn(`[Pterodactyl] Auth error ${response.status} for ${uuid} - using fallback`)
+      // При проблемах с авторизацией возвращаем unknown
+      return {
+        state: 'unknown',
+        is_suspended: false,
+      }
+    }
+
     if (!response.ok) {
       if (response.status === 404) {
         return {
@@ -316,12 +330,16 @@ export async function getPterodactylServerStatus(uuid: string): Promise<{ state:
           is_suspended: false,
         }
       }
-      throw new Error(`Failed to get server status: ${response.status}`)
+      console.warn(`[Pterodactyl] Unexpected status ${response.status} for ${uuid}`)
+      return {
+        state: 'unknown',
+        is_suspended: false,
+      }
     }
 
     const data = await response.json()
     return {
-      state: data.attributes?.current_state || null,
+      state: data.attributes?.current_state || 'unknown',
       is_suspended: data.attributes?.is_suspended || false,
     }
   } catch (error: any) {
@@ -335,7 +353,11 @@ export async function getPterodactylServerStatus(uuid: string): Promise<{ state:
       }
     }
     
-    throw error
+    console.error(`[Pterodactyl] Error getting status for ${uuid}:`, error.message)
+    return {
+      state: 'unknown',
+      is_suspended: false,
+    }
   }
 }
 
