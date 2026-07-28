@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Server, Cloud, Cpu, HardDrive, Database, Wifi, Code, Shield, RussianRuble, DollarSign, Euro, Lock, Zap, Flame, ArrowRight, LogIn } from "lucide-react"
 import { publicGamePlans } from "@/lib/public-plans"
-import { formatPrice as formatCurrency, type Currency, updateCurrencyRates } from "@/lib/currency"
+import { formatPrice as formatCurrency, type Currency as CurrencyType, updateCurrencyRates } from "@/lib/currency"
 
 
 const vdsPlansPromo = [
@@ -55,6 +55,7 @@ export function Pricing() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [ratesLoading, setRatesLoading] = useState(true)
+  const [firstOrderDiscount, setFirstOrderDiscount] = useState<number>(0)
   const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 })
   const [currencyIndicatorStyle, setCurrencyIndicatorStyle] = useState({ width: 0, left: 0 })
   const [vdsSubType, setVdsSubType] = useState<VdsSubType>("promo")
@@ -71,6 +72,7 @@ export function Pricing() {
   useEffect(() => {
     checkAuth()
     loadCurrencyRates()
+    loadFirstOrderDiscount()
   }, [])
 
   const loadCurrencyRates = async () => {
@@ -80,6 +82,20 @@ export function Pricing() {
     } catch (error) {
       console.error('Failed to load currency rates:', error)
       setRatesLoading(false)
+    }
+  }
+
+  const loadFirstOrderDiscount = async () => {
+    try {
+      const res = await fetch('/api/marketing/discount/public')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.isEnabled && data.discountPercent > 0) {
+          setFirstOrderDiscount(data.discountPercent)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load first order discount:', error)
     }
   }
 
@@ -277,7 +293,18 @@ export function Pricing() {
 
   // Используем утилиту для форматирования цены с автоматической конвертацией
   const formatPrice = (plan: any) => {
-    return formatCurrency(plan.price, currency as Currency)
+    return formatCurrency(plan.price, currency as CurrencyType)
+  }
+
+  // Форматирование цены со скидкой для первого заказа
+  const formatPriceWithDiscount = (plan: any) => {
+    const originalPrice = plan.price
+    const discountedPrice = Math.round(originalPrice * (1 - firstOrderDiscount / 100))
+    return {
+      original: formatCurrency(originalPrice, currency as CurrencyType),
+      discounted: formatCurrency(discountedPrice, currency as CurrencyType),
+      discount: firstOrderDiscount
+    }
   }
 
   return (
@@ -421,10 +448,42 @@ export function Pricing() {
 
                 {/* Price */}
                 <div className="border-y border-border/30 bg-muted/30 px-4 sm:px-5 py-2.5 sm:py-3">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-heading text-xl sm:text-2xl font-bold text-foreground transition-all duration-300">{formatPrice(plan)}</span>
-                    <span className="text-[10px] sm:text-xs text-muted-foreground">/мес</span>
-                  </div>
+                  {firstOrderDiscount > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col">
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-heading text-xl sm:text-2xl font-bold text-foreground transition-all duration-300">
+                              {formatPriceWithDiscount(plan).discounted}
+                            </span>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">/мес</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] sm:text-xs text-muted-foreground/70 line-through">
+                              {formatPriceWithDiscount(plan).original}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
+                          <Flame className="size-3 sm:size-3.5 text-orange-500" />
+                          <span className="text-[10px] sm:text-xs font-bold text-orange-500">
+                            -{formatPriceWithDiscount(plan).discount}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] text-muted-foreground/60 uppercase tracking-wider">
+                          <Zap className="size-2.5 sm:size-3" />
+                          Только для первого заказа
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-heading text-xl sm:text-2xl font-bold text-foreground transition-all duration-300">{formatPrice(plan)}</span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">/мес</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Specs */}
