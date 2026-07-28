@@ -132,7 +132,21 @@ export async function POST(
     }
 
     try {
-      // Обновляем build сервера (без изменения allocation/порта)
+      // Получаем текущий сервер из Pterodactyl для получения allocation ID
+      const { getPterodactylServer } = await import('@/lib/pterodactyl')
+      const pteroServer = await getPterodactylServer(server.pterodactylId)
+      
+      // Получаем ID основного allocation (первый в списке)
+      const defaultAllocationId = pteroServer.relationships?.allocations?.data?.[0]?.attributes?.id
+      
+      if (!defaultAllocationId) {
+        console.error('[Upgrade Server] No allocation found for server')
+        return NextResponse.json({ 
+          error: 'Не удалось найти порт сервера' 
+        }, { status: 500 })
+      }
+
+      // Обновляем build сервера с текущим allocation
       await updateServerBuild(server.pterodactylId, {
         ram: newPlan.ram,
         cpu: newPlan.cpu,
@@ -140,6 +154,7 @@ export async function POST(
         databases: newPlan.databases,
         backups: newPlan.backups,
         allocations: newPlan.allocations || 1,
+        allocationId: defaultAllocationId,
       })
     } catch (pteroError: any) {
       console.error('[Upgrade Server] Pterodactyl error:', pteroError)
