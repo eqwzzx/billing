@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
             const statusData = await getPterodactylServerStatus(server.pterodactylUuid)
             let newStatus: typeof server.status = server.status
 
+            console.log(`[Server ${server.id}] Current status: ${server.status}, Ptero state: ${statusData.state}, suspended: ${statusData.is_suspended}`)
+
             // Если статус unknown (таймаут/недоступен) - оставляем текущий статус
             if (statusData.state === 'unknown') {
               return server
@@ -46,42 +48,58 @@ export async function GET(request: NextRequest) {
 
             if ((server.status as string) === 'DELETED') {
               return server
-            } else if (server.status === 'SUSPENDED') {
+            } 
+            
+            // Приоритет 1: Если Pterodactyl говорит что сервер в установке - всегда INSTALLING
+            if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
+              newStatus = 'INSTALLING'
+            }
+            // Приоритет 2: Suspend статус
+            else if (statusData.is_suspended) {
               newStatus = 'SUSPENDED'
-            } else if (server.status === 'INSTALLING' && statusData.state === 'running') {
-              newStatus = 'ACTIVE'
-            } else if (server.status === 'INSTALLING' && (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting')) {
-              newStatus = 'RESTARTING'
-            } else if (server.status === 'INSTALLING' && statusData.state === 'offline') {
-              const createdAt = new Date(server.createdAt)
-              const now = new Date()
-              const minutesAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60)
-              
-              if (minutesAgo > 5) {
-                newStatus = 'OFF'
+            }
+            else if (server.status === 'SUSPENDED') {
+              newStatus = 'SUSPENDED'
+            }
+            // Приоритет 3: Если в БД INSTALLING, но Pterodactyl говорит что уже не installing
+            else if (server.status === 'INSTALLING') {
+              if (statusData.state === 'running') {
+                newStatus = 'ACTIVE'
+              } else if (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting') {
+                newStatus = 'RESTARTING'
+              } else if (statusData.state === 'stopped' || statusData.state === 'offline') {
+                // Проверяем сколько прошло времени с создания
+                const createdAt = new Date(server.createdAt)
+                const now = new Date()
+                const minutesAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60)
+                
+                // Если прошло больше 10 минут и статус offline - установка завершена, сервер выключен
+                if (minutesAgo > 10) {
+                  newStatus = 'OFF'
+                  console.log(`[Server ${server.id}] Installation completed (${Math.round(minutesAgo)} min ago), server is OFF`)
+                } else {
+                  // Иначе продолжаем ждать установки
+                  newStatus = 'INSTALLING'
+                  console.log(`[Server ${server.id}] Still installing (${Math.round(minutesAgo)} min ago)`)
+                }
               } else {
                 newStatus = 'INSTALLING'
               }
-            } else if (server.status === 'INSTALLING') {
-              newStatus = 'INSTALLING'
-            } else if (statusData.is_suspended) {
-              newStatus = 'SUSPENDED'
-            } else if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
-              newStatus = 'INSTALLING'
-            } else if (statusData.state === 'starting') {
+            }
+            // Приоритет 4: Обычные статусы работающего сервера
+            else if (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting') {
               newStatus = 'RESTARTING'
-            } else if (statusData.state === 'stopping') {
-              newStatus = 'RESTARTING'
-            } else if (statusData.state === 'restarting') {
-              newStatus = 'RESTARTING'
-            } else if (statusData.state === 'stopped') {
-              newStatus = 'OFF'
-            } else if (statusData.state === 'offline') {
+            } else if (statusData.state === 'stopped' || statusData.state === 'offline') {
               newStatus = 'OFF'
             } else if (statusData.state === 'running') {
               newStatus = 'ACTIVE'
             } else {
-              newStatus = 'ACTIVE'
+              // Оставляем текущий статус если не можем определить
+              newStatus = server.status
+            }
+
+            if (newStatus !== server.status) {
+              console.log(`[Server ${server.id}] Status changed: ${server.status} -> ${newStatus}`)
             }
 
             return { ...server, status: newStatus }

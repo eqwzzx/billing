@@ -265,8 +265,8 @@ export async function getPterodactylServers(): Promise<PterodactylServer[]> {
   return response.data.map(item => item.attributes)
 }
 
-export async function getPterodactylServer(serverId: number): Promise<PterodactylServer> {
-  const response = await pterodactylFetch<PterodactylResponse<PterodactylServer>>(`/servers/${serverId}`)
+export async function getPterodactylServer(serverId: number): Promise<any> {
+  const response = await pterodactylFetch<any>(`/servers/${serverId}?include=allocations`)
   return response.attributes
 }
 

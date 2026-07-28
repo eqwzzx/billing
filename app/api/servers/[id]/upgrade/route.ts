@@ -136,17 +136,33 @@ export async function POST(
       const { getPterodactylServer } = await import('@/lib/pterodactyl')
       const pteroServer = await getPterodactylServer(server.pterodactylId)
       
-      // Получаем ID основного allocation (первый в списке)
-      const defaultAllocationId = pteroServer.relationships?.allocations?.data?.[0]?.attributes?.id
+      console.log('[Upgrade Server] Pterodactyl server data:', JSON.stringify(pteroServer, null, 2))
+      
+      // Получаем ID основного allocation
+      let defaultAllocationId: number | undefined
+      
+      // Проверяем разные возможные структуры ответа
+      if (pteroServer.relationships?.allocations?.data) {
+        defaultAllocationId = pteroServer.relationships.allocations.data[0]?.attributes?.id
+      } else if (pteroServer.allocations) {
+        defaultAllocationId = pteroServer.allocations[0]?.id
+      } else if (pteroServer.allocation) {
+        defaultAllocationId = typeof pteroServer.allocation === 'number' 
+          ? pteroServer.allocation 
+          : pteroServer.allocation?.id
+      }
+      
+      console.log('[Upgrade Server] Found allocation ID:', defaultAllocationId)
       
       if (!defaultAllocationId) {
-        console.error('[Upgrade Server] No allocation found for server')
+        console.error('[Upgrade Server] No allocation found for server. Server data:', pteroServer)
         return NextResponse.json({ 
-          error: 'Не удалось найти порт сервера' 
+          error: 'Не удалось найти порт сервера. Обратитесь в поддержку.' 
         }, { status: 500 })
       }
 
       // Обновляем build сервера с текущим allocation
+      console.log('[Upgrade Server] Updating server build with allocation:', defaultAllocationId)
       await updateServerBuild(server.pterodactylId, {
         ram: newPlan.ram,
         cpu: newPlan.cpu,
@@ -156,6 +172,7 @@ export async function POST(
         allocations: newPlan.allocations || 1,
         allocationId: defaultAllocationId,
       })
+      console.log('[Upgrade Server] Server build updated successfully')
     } catch (pteroError: any) {
       console.error('[Upgrade Server] Pterodactyl error:', pteroError)
       const errorMsg = pteroError?.message || 'Неизвестная ошибка'

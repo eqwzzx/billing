@@ -70,51 +70,58 @@ export async function GET(request: NextRequest) {
             
             console.log(`[Server ${server.id}] DB status: ${server.status}, Pterodactyl state: ${statusData.state}, is_suspended: ${statusData.is_suspended}`)
             
-            if (server.status === 'DELETED' as any) {
-              newStatus = 'DELETED' as any
-            } else if (server.status === 'SUSPENDED') {
-              newStatus = 'SUSPENDED'
-            } else if (statusData.is_suspended) {
-              // Приоритет для suspended состояния из Pterodactyl
-              newStatus = 'SUSPENDED'
-            } else if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
-              // Pterodactyl явно указывает на установку
+            // Приоритет 1: Pterodactyl говорит что установка в процессе
+            if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
               newStatus = 'INSTALLING'
-            } else if (server.status === 'INSTALLING' && statusData.state === 'running') {
-              // Установка завершена, сервер запущен
-              newStatus = 'ACTIVE'
-            } else if (server.status === 'INSTALLING' && (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting')) {
-              // Сервер установлен и выполняет действие
-              newStatus = 'RESTARTING'
-            } else if (server.status === 'INSTALLING' && (statusData.state === 'offline' || statusData.state === 'stopped')) {
-              // Сервер установлен, но выключен
-              const createdAt = new Date(server.createdAt)
-              const now = new Date()
-              const minutesAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60)
-              
-              // Даём 5 минут на установку, после этого считаем что установка завершена
-              // и сервер просто выключен пользователем
-              if (minutesAgo > 5) {
-                console.log(`[Server ${server.id}] Installation timeout (${minutesAgo.toFixed(1)} min) - marking as OFF`)
-                newStatus = 'OFF'
+              console.log(`[Server ${server.id}] Pterodactyl reports installing`)
+            }
+            // Приоритет 2: Suspend статус
+            else if (statusData.is_suspended || server.status === 'SUSPENDED') {
+              newStatus = 'SUSPENDED'
+            }
+            // Приоритет 3: Deleted статус
+            else if (server.status === 'DELETED' as any) {
+              newStatus = 'DELETED' as any
+            }
+            // Приоритет 4: Если в БД INSTALLING, но Pterodactyl говорит что не installing
+            else if (server.status === 'INSTALLING') {
+              if (statusData.state === 'running') {
+                newStatus = 'ACTIVE'
+                console.log(`[Server ${server.id}] Installation completed - server is running`)
+              } else if (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting') {
+                newStatus = 'RESTARTING'
+                console.log(`[Server ${server.id}] Installation completed - server is restarting`)
+              } else if (statusData.state === 'offline' || statusData.state === 'stopped') {
+                const createdAt = new Date(server.createdAt)
+                const now = new Date()
+                const minutesAgo = (now.getTime() - createdAt.getTime()) / (1000 * 60)
+                
+                // Увеличиваем таймаут до 10 минут для больших серверов
+                if (minutesAgo > 10) {
+                  newStatus = 'OFF'
+                  console.log(`[Server ${server.id}] Installation completed (${minutesAgo.toFixed(1)} min ago) - server is OFF`)
+                } else {
+                  newStatus = 'INSTALLING'
+                  console.log(`[Server ${server.id}] Still installing (${minutesAgo.toFixed(1)} min ago)`)
+                }
               } else {
-                // Ещё в процессе установки
                 newStatus = 'INSTALLING'
               }
-            } else if (statusData.state === 'starting') {
-              newStatus = 'RESTARTING'
-            } else if (statusData.state === 'stopping') {
-              newStatus = 'RESTARTING'
-            } else if (statusData.state === 'restarting') {
+            }
+            // Приоритет 5: Обычные статусы работающего сервера
+            else if (statusData.state === 'starting' || statusData.state === 'stopping' || statusData.state === 'restarting') {
               newStatus = 'RESTARTING'
             } else if (statusData.state === 'stopped' || statusData.state === 'offline') {
-              // Сервер не в процессе установки и выключен
               newStatus = 'OFF'
             } else if (statusData.state === 'running') {
               newStatus = 'ACTIVE'
             } else {
-              // Неизвестное состояние
-              newStatus = server.status === 'ACTIVE' ? 'ACTIVE' : 'OFF'
+              // Оставляем текущий статус если не можем определить
+              newStatus = server.status
+            }
+            
+            if (newStatus !== server.status) {
+              console.log(`[Server ${server.id}] Status changed: ${server.status} -> ${newStatus}`)
             }
             
             return { ...server, status: newStatus }
