@@ -48,7 +48,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Некорректный email' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } })
+    const user = await prisma.user.findUnique({ 
+      where: { email: email.toLowerCase().trim() },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        balance: true,
+        role: true,
+        twoFactorEnabled: true,
+        banned: true,
+      }
+    })
     
     if (!user) {
       createAuditLog(request, 'LOGIN_FAILED', { 
@@ -70,9 +82,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Неверный email или пароль' }, { status: 401 })
     }
 
+    // Проверяем бан
+    if (user.banned) {
+      return NextResponse.json({ error: 'Аккаунт заблокирован' }, { status: 403 })
+    }
+
     // Проверяем, включена ли 2FA
+    console.log('[Login] 2FA status for user:', user.email, 'enabled:', user.twoFactorEnabled)
+    
     if (user.twoFactorEnabled) {
       // Требуется подтверждение через 2FA
+      console.log('[Login] 2FA required, returning requiresTwoFactor response')
       return NextResponse.json({
         requiresTwoFactor: true,
         email: user.email,
@@ -80,6 +100,8 @@ export async function POST(request: NextRequest) {
       }, { status: 200 })
     }
 
+    console.log('[Login] 2FA not enabled, proceeding with normal login')
+    
     await liftExpiredBanForUser(user)
 
     const token = jwt.sign(
