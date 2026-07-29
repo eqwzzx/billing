@@ -270,6 +270,20 @@ export async function getPterodactylServer(serverId: number): Promise<any> {
   return response.attributes
 }
 
+export async function getPterodactylServerAdminStatus(uuid: string): Promise<{ is_suspended: boolean; status: string } | null> {
+  try {
+    // Получаем информацию о сервере через admin API по UUID
+    const response = await pterodactylFetch<any>(`/servers/external/${uuid}`)
+    return {
+      is_suspended: response.attributes?.suspended || false,
+      status: response.attributes?.status || 'unknown'
+    }
+  } catch (error) {
+    console.error(`[Pterodactyl] Admin API error for ${uuid}:`, error)
+    return null
+  }
+}
+
 export async function getPterodactylServerStatus(uuid: string): Promise<{ state: string; is_suspended: boolean }> {
   const PTERODACTYL_URL = process.env.PTERODACTYL_URL
   const PTERODACTYL_CLIENT_KEY = process.env.PTERODACTYL_CLIENT_KEY
@@ -300,7 +314,24 @@ export async function getPterodactylServerStatus(uuid: string): Promise<{ state:
     console.log(`[Pterodactyl] Response status for ${uuid}: ${response.status}`)
 
     if (response.status === 409) {
-      console.log(`[Pterodactyl] Server ${uuid} is still installing (409)`)
+      console.log(`[Pterodactyl] Server ${uuid} returns 409, checking admin API for suspended status`)
+      
+      // Проверяем через admin API если получили 409
+      try {
+        const adminStatus = await getPterodactylServerAdminStatus(uuid)
+        if (adminStatus) {
+          console.log(`[Pterodactyl] Admin API reports: suspended=${adminStatus.is_suspended}, status=${adminStatus.status}`)
+          if (adminStatus.is_suspended) {
+            return {
+              state: 'suspended',
+              is_suspended: true,
+            }
+          }
+        }
+      } catch (adminError) {
+        console.log(`[Pterodactyl] Admin API check failed, assuming installing`)
+      }
+      
       return {
         state: 'installing',
         is_suspended: false,
