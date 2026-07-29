@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [mode, setMode] = useState<"login" | "register" | "forgot" | "verify">("login")
+  const [mode, setMode] = useState<"login" | "register" | "forgot" | "verify" | "2fa">("login")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,6 +24,12 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [verifyCode, setVerifyCode] = useState(["", "", "", "", "", ""])
   const [resendCooldown, setResendCooldown] = useState(0)
   const codeInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  
+  // 2FA states
+  const [twoFactorEmail, setTwoFactorEmail] = useState("")
+  const [twoFactorCode, setTwoFactorCode] = useState(["", "", "", "", "", ""])
+  const [useBackupCode, setUseBackupCode] = useState(false)
+  const twoFactorInputRefs = useRef<(HTMLInputElement | null)[]>([])
   
   const [formData, setFormData] = useState({
     email: "",
@@ -74,6 +80,13 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     }
   }, [mode])
 
+  // Focus first 2FA input when entering 2FA mode
+  useEffect(() => {
+    if (mode === "2fa" && twoFactorInputRefs.current[0]) {
+      setTimeout(() => twoFactorInputRefs.current[0]?.focus(), 100)
+    }
+  }, [mode])
+
   if (!isVisible) return null
 
   const handleCodeChange = (index: number, value: string) => {
@@ -109,6 +122,81 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       setVerifyCode(newCode)
       handleVerifyCode(pasted)
     }
+  }
+
+  // 2FA handlers
+  const handle2FACodeChange = (index: number, value: string) => {
+    // For backup codes (8 chars), allow alphanumeric
+    const pattern = useBackupCode ? /^[A-Z0-9]*$/i : /^\d*$/
+    if (!pattern.test(value)) return
+    
+    const newCode = [...twoFactorCode]
+    newCode[index] = value.slice(-1).toUpperCase()
+    setTwoFactorCode(newCode)
+    setError(null)
+    
+    // Auto-focus next input
+    const maxLength = useBackupCode ? 8 : 6
+    if (value && index < maxLength - 1) {
+      twoFactorInputRefs.current[index + 1]?.focus()
+    }
+    
+    // Auto-submit when all digits/chars entered
+    if (newCode.every(d => d) && newCode.join("").length === maxLength) {
+      handle2FAVerify(newCode.join(""))
+    }
+  }
+
+  const handle2FACodeKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !twoFactorCode[index] && index > 0) {
+      twoFactorInputRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handle2FACodePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const maxLength = useBackupCode ? 8 : 6
+    const pattern = useBackupCode ? /[^A-Z0-9]/gi : /\D/g
+    const pasted = e.clipboardData.getData("text").replace(pattern, "").slice(0, maxLength).toUpperCase()
+    
+    if (pasted.length === maxLength) {
+      const newCode = pasted.split("")
+      setTwoFactorCode(newCode)
+      handle2FAVerify(pasted)
+    }
+  }
+
+  const handle2FAVerify = async (code: string) => {
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const res = await fetch('/api/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: twoFactorEmail, 
+          token: code,
+          useBackupCode 
+        }),
+      })
+      const data = await res.json()
+      
+      if (!res.ok) {
+        setError(data.error || 'Неверный код')
+        setTwoFactorCode(useBackupCode ? ["", "", "", "", "", "", "", ""] : ["", "", "", "", "", ""])
+        twoFactorInputRefs.current[0]?.focus()
+        setIsLoading(false)
+        return
+      }
+      
+      // 2FA verified, login successful
+      onSuccess?.()
+      handleClose()
+    } catch {
+      setError('Ошибка проверки кода')
+    }
+    setIsLoading(false)
   }
 
   const handleVerifyCode = async (code: string) => {
@@ -282,6 +370,17 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
         return
       }
 
+      // Check if 2FA is required
+      if (loginData.requiresTwoFactor) {
+        setTwoFactorEmail(formData.email)
+        setTwoFactorCode(["", "", "", "", "", ""])
+        setUseBackupCode(false)
+        setMode("2fa")
+        setIsLoading(false)
+        return
+      }
+
+      // Login successful without 2FA
       onSuccess?.()
       handleClose()
     } catch {
@@ -306,12 +405,133 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       setVerifyCode(["", "", "", "", "", ""])
       setVerifyEmail("")
       setResendCooldown(0)
+      setTwoFactorCode(["", "", "", "", "", "", "", ""])
+      setTwoFactorEmail("")
+      setUseBackupCode(false)
     }, 400)
   }
 
   const inputBaseClass = "w-full bg-background/50 border-2 rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none transition-all duration-300 hover:border-border focus:bg-background/80 shadow-sm"
   const inputNormalClass = "border-border/40 focus:border-primary focus:shadow-[0_0_0_4px_rgba(var(--primary),0.1)]"
   const inputErrorClass = "border-red-500/70 focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.1)]"
+
+  // 2FA UI
+  if (mode === "2fa") {
+    const maxLength = useBackupCode ? 8 : 6
+    const displayCode = useBackupCode ? twoFactorCode : twoFactorCode.slice(0, 6)
+    
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
+        <div 
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-all duration-400 ${isAnimating ? "opacity-100" : "opacity-0"}`}
+          onClick={handleClose}
+        />
+        
+        <div 
+          className={`relative w-full max-w-sm transition-all duration-400 ease-out ${
+            isAnimating ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-4"
+          } ${shake ? "animate-shake" : ""}`}
+          style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+        >
+          <div className="relative bg-card/80 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-border">
+            <button onClick={handleClose} className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-muted/50 hover:bg-red-500/20 group">
+              <X className="size-4 text-muted-foreground group-hover:text-red-500" />
+            </button>
+
+            <div className="relative p-6">
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Fingerprint className="size-8 text-primary" />
+                </div>
+                <h2 className="font-heading text-xl font-bold text-foreground mb-1">
+                  Двухфакторная аутентификация
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {useBackupCode 
+                    ? 'Введите резервный код (8 символов)' 
+                    : 'Введите код из приложения аутентификации'}
+                </p>
+              </div>
+
+              {/* Error */}
+              <div className={`overflow-hidden transition-all duration-300 ${error ? "max-h-20 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"}`}>
+                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+                  {error}
+                </div>
+              </div>
+
+              {/* Code inputs */}
+              <div className="flex justify-center gap-2 mb-6" onPaste={handle2FACodePaste}>
+                {displayCode.map((digit, i) => (
+                  <input
+                    key={i}
+                    ref={el => { twoFactorInputRefs.current[i] = el }}
+                    type="text"
+                    inputMode={useBackupCode ? "text" : "numeric"}
+                    maxLength={1}
+                    value={digit}
+                    onChange={e => handle2FACodeChange(i, e.target.value)}
+                    onKeyDown={e => handle2FACodeKeyDown(i, e)}
+                    disabled={isLoading}
+                    className={`${useBackupCode ? 'w-10 h-12 text-xl' : 'w-12 h-14 text-2xl'} text-center font-bold bg-background/50 border-2 border-border/40 rounded-xl focus:border-primary focus:outline-none focus:shadow-[0_0_0_4px_rgba(var(--primary),0.1)] transition-all disabled:opacity-50 uppercase`}
+                  />
+                ))}
+              </div>
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+                  <Loader2 className="size-4 animate-spin" />
+                  <span className="text-sm">Проверяем...</span>
+                </div>
+              )}
+
+              {/* Toggle backup code */}
+              <div className="text-center mb-4">
+                <button
+                  onClick={() => {
+                    setUseBackupCode(!useBackupCode)
+                    setTwoFactorCode(useBackupCode ? ["", "", "", "", "", ""] : ["", "", "", "", "", "", "", ""])
+                    setError(null)
+                  }}
+                  disabled={isLoading}
+                  className="text-sm text-primary font-medium hover:underline disabled:opacity-50"
+                >
+                  {useBackupCode ? 'Использовать код из приложения' : 'Использовать резервный код'}
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/30 text-muted-foreground text-xs text-center">
+                {useBackupCode 
+                  ? 'Каждый резервный код можно использовать только один раз'
+                  : 'Откройте Google Authenticator и введите 6-значный код'}
+              </div>
+
+              {/* Back button */}
+              <button
+                onClick={() => { setMode("login"); setError(null); setSuccess(null) }}
+                className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mt-4 mx-auto transition-colors"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>Вернуться к входу</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+          }
+          .animate-shake { animation: shake 0.5s ease-in-out; }
+        `}</style>
+      </div>
+    )
+  }
 
   // Verification UI
   if (mode === "verify") {
