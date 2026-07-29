@@ -173,7 +173,7 @@ export function Footer() {
                 </div>
                 <div>
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Telegram</p>
-                  <p className="text-xs sm:text-sm text-foreground">Написать нам</p>
+                  <p className="text-xs sm:text-sm text-foreground">Присоединиться</p>
                 </div>
               </a>
             </div>

@@ -121,7 +121,7 @@ export function FAQ() {
             Наша поддержка всегда готова помочь
           </p>
           <a
-            href="https://discord.com/invite/hsC6TjHE8H"
+            href="https://t.me/fluxor_support"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-xl bg-foreground px-6 py-3 text-sm font-medium text-background hover:bg-foreground/90 transition-colors"

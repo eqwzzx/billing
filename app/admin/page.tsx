@@ -1159,6 +1159,24 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </Link>
+
+                <Link href="/admin/alerts">
+                  <div className="relative overflow-hidden border border-border/40 bg-card/50 backdrop-blur-sm rounded-xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/50 hover:-translate-y-1 group cursor-pointer">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10 text-blue-500 group-hover:scale-110 transition-transform">
+                          <AlertCircle className="size-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-semibold text-lg">Оповещения</h3>
+                          <p className="text-sm text-muted-foreground">Управление алертами</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="size-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                </Link>
               </div>
             )}
 

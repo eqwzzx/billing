@@ -252,7 +252,7 @@ function PaymentsContent() {
                   </p>
                   <div className="flex flex-col gap-2">
                     <a
-                      href="https://t.me/fluxor_solutions"
+                      href="https://t.me/fluxor_support"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 py-2.5 px-4 bg-[#229ED9] hover:bg-[#229ED9]/90 text-white rounded-xl text-sm font-medium transition-colors"
