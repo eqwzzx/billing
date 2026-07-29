@@ -144,7 +144,7 @@ export interface TwoFactorSetup {
  */
 export async function generateTwoFactorSetup(
   userEmail: string,
-  appName: string = 'Avelon Billing'
+  appName: string = 'Fluxor Billing'
 ): Promise<TwoFactorSetup> {
   // Генерируем секретный ключ
   const secret = generateSecret()

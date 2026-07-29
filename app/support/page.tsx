@@ -40,7 +40,7 @@ export default function SupportPage() {
               <div>
                 <h3 className="font-heading text-lg font-bold text-foreground">Discord</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Присоединяйтесь к сообществу</p>
-                <p className="mt-2 text-sm text-indigo-500">dsc.gg/avelonmy</p>
+                <p className="mt-2 text-sm text-indigo-500">https://discord.gg/S39VPEzdyK</p>
               </div>
             </a>
 

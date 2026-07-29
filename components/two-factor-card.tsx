@@ -174,7 +174,7 @@ export function TwoFactorCard() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'avelon-backup-codes.txt'
+    a.download = 'fluxor-backup-codes.txt'
     a.click()
     URL.revokeObjectURL(url)
   }

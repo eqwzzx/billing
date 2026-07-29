@@ -263,7 +263,7 @@ export function Navbar() {
               </div>
               
               <a
-                href="https://dsc.gg/avelonmy"
+                href="https://discord.gg/S39VPEzdyK"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-foreground hover:bg-accent transition-colors"
