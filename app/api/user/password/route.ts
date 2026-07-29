@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
+import { verify2FAToken } from '@/lib/two-factor-middleware'
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { currentPassword, newPassword } = body
+    const { currentPassword, newPassword, twoFactorToken, useBackupCode } = body
 
     if (!currentPassword || !newPassword) {
       return NextResponse.json({ error: 'Текущий и новый пароль обязательны' }, { status: 400 })
@@ -23,11 +24,26 @@ export async function PATCH(request: NextRequest) {
 
     const user = await prisma.user.findUnique({ 
       where: { id: authUser.id },
-      select: { id: true, password: true }
+      select: { 
+        id: true, 
+        password: true,
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+        twoFactorBackupCodes: true,
+      }
     })
 
     if (!user) {
       return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
+    }
+
+    // Проверка 2FA если включена
+    const twoFAResult = await verify2FAToken(user.id, twoFactorToken, useBackupCode)
+    if (!twoFAResult.success) {
+      return NextResponse.json({ 
+        error: twoFAResult.error,
+        requires2FA: user.twoFactorEnabled 
+      }, { status: 403 })
     }
 
     const isValid = await bcrypt.compare(currentPassword, user.password)

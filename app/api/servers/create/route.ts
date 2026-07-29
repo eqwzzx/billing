@@ -11,6 +11,7 @@ import { adminLogger } from '@/lib/admin-logger'
 import { generatePterodactylPassword, encryptPassword, decryptPassword } from '@/lib/pterodactyl-password'
 import { applyFirstOrderDiscount, markFirstOrderDiscountUsed, trackMarketingEvent } from '@/lib/marketing'
 import { verifyAuth } from '@/lib/auth-admin'
+import { verify2FAToken } from '@/lib/two-factor-middleware'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
     }
     const userId = auth.userId
+
+    const body = await request.json()
+    const { planId, nodeId, eggId, promoCode, twoFactorToken, useBackupCode } = body
+
+    // Проверка 2FA для покупки (перед всеми другими проверками)
+    const twoFAResult = await verify2FAToken(userId, twoFactorToken, useBackupCode)
+    if (!twoFAResult.success) {
+      // Получаем информацию о том, включена ли 2FA у пользователя
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { twoFactorEnabled: true }
+      })
+      
+      return NextResponse.json({ 
+        error: twoFAResult.error,
+        requires2FA: user?.twoFactorEnabled || false
+      }, { status: 403 })
+    }
 
     // Проверяем не отключено ли создание серверов
     const serverCreationSetting = await prisma.adminSettings.findUnique({
@@ -29,9 +48,6 @@ export async function POST(request: NextRequest) {
         error: 'Создание серверов временно отключено. Попробуйте позже.' 
       }, { status: 503 })
     }
-
-    const body = await request.json()
-    const { planId, nodeId, eggId, promoCode } = body
     
     const randomNames = ['Phoenix', 'Thunder', 'Shadow', 'Storm', 'Blaze', 'Frost', 'Nova', 'Vortex', 'Titan', 'Spark', 'Echo', 'Pulse', 'Drift', 'Flux', 'Apex']
     const crypto = require('crypto')

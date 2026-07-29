@@ -3,13 +3,14 @@ import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
 import { validateEmail } from '@/lib/security'
 import { generateVerificationCode, sendVerificationCode } from '@/lib/email'
+import { verify2FAToken } from '@/lib/two-factor-middleware'
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth(request)
 
     const body = await request.json()
-    const { newEmail } = body
+    const { newEmail, twoFactorToken, useBackupCode } = body
 
     if (!newEmail || typeof newEmail !== 'string') {
       return NextResponse.json({ error: 'Новый email обязателен' }, { status: 400 })
@@ -26,6 +27,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Некорректный формат email' }, { status: 400 })
     }
 
+    // Получаем текущего пользователя с настройками 2FA
+    const currentUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { 
+        email: true,
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+        twoFactorBackupCodes: true,
+      }
+    })
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
+    }
+
+    // Проверка 2FA если включена
+    const twoFAResult = await verify2FAToken(user.id, twoFactorToken, useBackupCode)
+    if (!twoFAResult.success) {
+      return NextResponse.json({ 
+        error: twoFAResult.error,
+        requires2FA: currentUser.twoFactorEnabled 
+      }, { status: 403 })
+    }
+
     // Проверка что email свободен
     const existingUser = await prisma.user.findUnique({
       where: { email: normalizedEmail }
@@ -33,16 +58,6 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json({ error: 'Этот email уже используется' }, { status: 400 })
-    }
-
-    // Получаем текущего пользователя
-    const currentUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { email: true }
-    })
-
-    if (!currentUser) {
-      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
     }
 
     if (currentUser.email === normalizedEmail) {

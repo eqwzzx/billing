@@ -340,6 +340,52 @@ class DiscordLogger {
   }
 
   /**
+   * Логирование действий с 2FA
+   */
+  async log2FA(data: {
+    action: 'enabled' | 'disabled' | 'verified' | 'backup_used';
+    userId: string;
+    userName: string;
+    userEmail: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    const actionData = {
+      enabled: { title: '🔐 Двухфакторная аутентификация включена', color: this.getColor('success'), emoji: '✅' },
+      disabled: { title: '🔓 Двухфакторная аутентификация отключена', color: this.getColor('warning'), emoji: '⚠️' },
+      verified: { title: '✔️ 2FA верификация успешна', color: this.getColor('success'), emoji: '🔑' },
+      backup_used: { title: '🔑 Использован резервный код 2FA', color: this.getColor('info'), emoji: '📋' },
+    };
+
+    const fields: Array<{ name: string; value: string; inline?: boolean }> = [
+      { name: '👤 Пользователь', value: data.userName, inline: true },
+      { name: '📧 Email', value: data.userEmail, inline: true },
+      { name: '🆔 User ID', value: data.userId, inline: true },
+    ];
+
+    if (data.ipAddress) {
+      fields.push({ name: '🌐 IP', value: data.ipAddress, inline: true });
+    }
+
+    if (data.userAgent) {
+      fields.push({ name: '💻 User Agent', value: data.userAgent.substring(0, 100), inline: false });
+    }
+
+    await this.sendToDiscord({
+      title: actionData[data.action].title,
+      description: data.action === 'enabled' 
+        ? '🎉 Аккаунт теперь защищен двухфакторной аутентификацией через Google Authenticator или аналогичное приложение.'
+        : data.action === 'disabled'
+        ? '⚠️ Двухфакторная аутентификация отключена. Рекомендуем включить её снова для защиты аккаунта.'
+        : undefined,
+      color: actionData[data.action].color,
+      fields,
+      timestamp: this.getTimestamp(),
+      footer: { text: 'Fluxor 2FA Security' },
+    });
+  }
+
+  /**
    * Общий лог для кастомных событий
    */
   async log(data: {

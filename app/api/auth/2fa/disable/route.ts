@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { verifyTwoFactorToken } from '@/lib/two-factor'
+import { discordLogger } from '@/lib/discord-logger'
 
 /**
  * POST /api/auth/2fa/disable
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest) {
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: {
+        name: true,
+        email: true,
         twoFactorSecret: true,
         twoFactorEnabled: true,
       },
@@ -55,6 +58,19 @@ export async function POST(request: NextRequest) {
         twoFactorBackupCodes: null,
       },
     })
+
+    // Отправляем уведомление в Discord
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    
+    await discordLogger.log2FA({
+      action: 'disabled',
+      userId: user.id,
+      userName: dbUser.name || 'Unknown',
+      userEmail: user.email,
+      ipAddress: clientIp,
+      userAgent,
+    }).catch(err => console.error('Discord notification error:', err))
 
     return NextResponse.json({
       success: true,

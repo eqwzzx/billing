@@ -4,6 +4,7 @@ import { Settings, Shield, Link2, LogOut, Plus, Check, ExternalLink, RefreshCw, 
 import { User } from "../types"
 import { useState, useEffect } from "react"
 import { VerifyEmailModal } from "../modals/verify-email-modal"
+import { TwoFactorCard } from "@/components/two-factor-card"
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -544,6 +545,20 @@ export function SettingsTab({
                 </p>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-primary/20 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '185ms', animationFillMode: 'both' }}>
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-primary/20 bg-primary/5">
+            <h2 className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
+              <div className="size-7 sm:size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Shield className="size-3.5 sm:size-4 text-primary" />
+              </div>
+              Двухфакторная аутентификация (2FA)
+            </h2>
+          </div>
+          <div className="p-4 sm:p-5">
+            <TwoFactorCard />
           </div>
         </div>
 
