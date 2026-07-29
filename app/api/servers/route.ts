@@ -70,14 +70,15 @@ export async function GET(request: NextRequest) {
             
             console.log(`[Server ${server.id}] DB status: ${server.status}, Pterodactyl state: ${statusData.state}, is_suspended: ${statusData.is_suspended}`)
             
-            // Приоритет 1: Pterodactyl говорит что установка в процессе
-            if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
+            // Приоритет 1: Suspend статус - проверяем в первую очередь!
+            if (statusData.is_suspended) {
+              newStatus = 'SUSPENDED'
+              console.log(`[Server ${server.id}] Pterodactyl reports suspended`)
+            }
+            // Приоритет 2: Pterodactyl говорит что установка в процессе
+            else if (statusData.state === 'installing' || statusData.state === 'reinstalling') {
               newStatus = 'INSTALLING'
               console.log(`[Server ${server.id}] Pterodactyl reports installing`)
-            }
-            // Приоритет 2: Suspend статус
-            else if (statusData.is_suspended || server.status === 'SUSPENDED') {
-              newStatus = 'SUSPENDED'
             }
             // Приоритет 3: Deleted статус
             else if (server.status === 'DELETED' as any) {
@@ -122,6 +123,17 @@ export async function GET(request: NextRequest) {
             
             if (newStatus !== server.status) {
               console.log(`[Server ${server.id}] Status changed: ${server.status} -> ${newStatus}`)
+              
+              // Обновляем статус в БД если он изменился
+              try {
+                await prisma.server.update({
+                  where: { id: server.id },
+                  data: { status: newStatus }
+                })
+                console.log(`[Server ${server.id}] Status updated in DB: ${newStatus}`)
+              } catch (updateError) {
+                console.error(`[Server ${server.id}] Failed to update status in DB:`, updateError)
+              }
             }
             
             return { ...server, status: newStatus }

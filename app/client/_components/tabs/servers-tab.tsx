@@ -1174,8 +1174,8 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
   const statusConfig = {
     ACTIVE: { color: 'emerald', label: 'Онлайн' },
     INSTALLING: { color: 'amber', label: 'Установка' },
-    SUSPENDED: { color: 'amber', label: 'Отключен' },
-    OFF: { color: 'red', label: 'Выключен' },
+    SUSPENDED: { color: 'red', label: 'Заморожен' },
+    OFF: { color: 'gray', label: 'Выключен' },
     RESTARTING: { color: 'blue', label: 'Перезагружается' },
     DELETED: { color: 'gray', label: 'Удален' },
   }

@@ -25,10 +25,10 @@ interface AdminServersTableProps {
 
 const statusColors: Record<string, string> = { 
   PENDING: 'bg-amber-500/20 text-amber-500', 
-  INSTALLING: 'bg-amber-500/20 text-amber-500', 
+  INSTALLING: 'bg-blue-500/20 text-blue-500', 
   ACTIVE: 'bg-emerald-500/20 text-emerald-500', 
-  SUSPENDED: 'bg-amber-500/20 text-amber-500', 
-  OFF: 'bg-red-500/20 text-red-500',
+  SUSPENDED: 'bg-red-500/20 text-red-500', 
+  OFF: 'bg-gray-500/20 text-gray-500',
   RESTARTING: 'bg-blue-500/20 text-blue-500',
   DELETED: 'bg-gray-500/20 text-gray-500' 
 }
@@ -37,7 +37,7 @@ const statusLabels: Record<string, string> = {
   PENDING: 'Ожидание',
   INSTALLING: 'Установка',
   ACTIVE: 'Онлайн',
-  SUSPENDED: 'Отключен',
+  SUSPENDED: 'Заморожен',
   OFF: 'Выключен',
   RESTARTING: 'Перезагружается',
   DELETED: 'Удален'
