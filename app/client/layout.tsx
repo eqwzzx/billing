@@ -11,6 +11,7 @@ import { ClientHeader } from "./_components/client-header"
 import { DeleteServerModal } from "./_components/modals/delete-server-modal"
 import { PasswordModal } from "./_components/modals/password-modal"
 import { DeleteAccountModal } from "./_components/modals/delete-account-modal"
+import { TwoFactorPromptModal } from "@/components/two-factor-prompt-modal"
 
 interface PteroAccount {
   linked: boolean
@@ -110,6 +111,13 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [reinstallingVdsId, setReinstallingVdsId] = useState<number | null>(null)
   const [renewingVdsId, setRenewingVdsId] = useState<number | null>(null)
   const [verificationLoading, setVerificationLoading] = useState(false)
+
+  // 2FA states
+  const [show2FAModal, setShow2FAModal] = useState(false)
+  const [pending2FAAction, setPending2FAAction] = useState<{
+    type: 'createServer' | 'changePassword' | 'changeEmail'
+    data: any
+  } | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -295,7 +303,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }
 
-  const handleCreateServer = async (planId: string, nodeId: string, name: string, eggId: string | null, promoCode: string | null = null) => {
+  const handleCreateServer = async (planId: string, nodeId: string, name: string, eggId: string | null, promoCode: string | null = null, twoFactorToken?: string, useBackupCode?: boolean) => {
     if (!user) return
     
     const selectedNodeData = nodes.find(n => n.id === nodeId)
@@ -311,7 +319,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       const res = await fetch('/api/servers/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, planId, nodeId, name, eggId, promoCode }),
+        body: JSON.stringify({ userId: user.id, planId, nodeId, name, eggId, promoCode, twoFactorToken, useBackupCode }),
       })
       
       const data = await res.json()
@@ -321,6 +329,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         loadServers()
         checkAuth()
         notify.success('Сервер создан! Установка началась.')
+        setPending2FAAction(null)
+      } else if (data.requires2FA) {
+        // Требуется 2FA - показываем модальное окно
+        setPending2FAAction({
+          type: 'createServer',
+          data: { planId, nodeId, name, eggId, promoCode }
+        })
+        setShow2FAModal(true)
       } else {
         setCreateError(data.error || 'Ошибка создания сервера')
         notify.error(data.error || 'Ошибка создания сервера')
@@ -427,7 +443,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     setPteroLoading(false)
   }
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (twoFactorToken?: string, useBackupCode?: boolean) => {
     if (passwordForm.new !== passwordForm.confirm) {
       setPasswordError('Пароли не совпадают')
       return
@@ -447,6 +463,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           currentPassword: passwordForm.current,
           newPassword: passwordForm.new,
+          twoFactorToken,
+          useBackupCode,
         }),
       })
       const data = await res.json()
@@ -454,7 +472,18 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       if (res.ok) {
         setShowPasswordModal(false)
         setPasswordForm({ current: '', new: '', confirm: '' })
+        setPending2FAAction(null)
         notify.success('Пароль успешно изменён!')
+      } else if (data.requires2FA) {
+        // Требуется 2FA - показываем модальное окно
+        setPending2FAAction({
+          type: 'changePassword',
+          data: {
+            currentPassword: passwordForm.current,
+            newPassword: passwordForm.new,
+          }
+        })
+        setShow2FAModal(true)
       } else {
         setPasswordError(data.error || 'Ошибка смены пароля')
       }
@@ -544,6 +573,22 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       notify.error('Ошибка сети')
     }
     setVerificationLoading(false)
+  }
+
+  const handle2FASubmit = async (token: string, useBackupCode: boolean) => {
+    if (!pending2FAAction) return
+
+    try {
+      if (pending2FAAction.type === 'createServer') {
+        const { planId, nodeId, name, eggId, promoCode } = pending2FAAction.data
+        await handleCreateServer(planId, nodeId, name, eggId, promoCode, token, useBackupCode)
+      } else if (pending2FAAction.type === 'changePassword') {
+        await handleChangePassword(token, useBackupCode)
+      }
+      setShow2FAModal(false)
+    } catch (error) {
+      throw error
+    }
   }
 
   if (authLoading) {
@@ -649,6 +694,23 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             onConfirmPassword={handleDeleteAccountConfirmPassword}
             onConfirmDelete={handleDeleteAccount}
             onClose={closeDeleteAccountModal}
+          />
+        )}
+
+        {show2FAModal && pending2FAAction && (
+          <TwoFactorPromptModal
+            isOpen={show2FAModal}
+            onClose={() => {
+              setShow2FAModal(false)
+              setPending2FAAction(null)
+            }}
+            onSubmit={handle2FASubmit}
+            title={
+              pending2FAAction.type === 'createServer' ? 'Создание сервера' :
+              pending2FAAction.type === 'changePassword' ? 'Смена пароля' :
+              'Требуется 2FA'
+            }
+            description="Введите код из приложения аутентификации"
           />
         )}
       </div>

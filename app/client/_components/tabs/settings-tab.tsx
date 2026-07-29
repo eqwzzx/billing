@@ -5,6 +5,7 @@ import { User } from "../types"
 import { useState, useEffect } from "react"
 import { VerifyEmailModal } from "../modals/verify-email-modal"
 import { TwoFactorCard } from "@/components/two-factor-card"
+import { TwoFactorPromptModal } from "@/components/two-factor-prompt-modal"
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -71,6 +72,8 @@ export function SettingsTab({
   const [emailChangeStep, setEmailChangeStep] = useState<1 | 2>(1)
   const [changingEmail, setChangingEmail] = useState(false)
   const [emailError, setEmailError] = useState<string | null>(null)
+  const [show2FAModal, setShow2FAModal] = useState(false)
+  const [pending2FAEmail, setPending2FAEmail] = useState('')
 
   useEffect(() => {
     checkDiscordLink()
@@ -177,7 +180,7 @@ export function SettingsTab({
     window.location.href = `/api/auth/discord?action=link${joinParam}`
   }
 
-  const handleRequestEmailChange = async () => {
+  const handleRequestEmailChange = async (twoFactorToken?: string, useBackupCode?: boolean) => {
     if (!newEmail.trim()) return
     
     setChangingEmail(true)
@@ -187,13 +190,19 @@ export function SettingsTab({
       const res = await fetch('/api/user/email/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newEmail }),
+        body: JSON.stringify({ newEmail, twoFactorToken, useBackupCode }),
       })
       const data = await res.json()
       
       if (res.ok) {
         setEmailChangeStep(2)
+        setShow2FAModal(false)
+        setPending2FAEmail('')
         alert('Код подтверждения отправлен на новый email!')
+      } else if (data.requires2FA) {
+        // Требуется 2FA - показываем модальное окно
+        setPending2FAEmail(newEmail)
+        setShow2FAModal(true)
       } else {
         setEmailError(data.error || 'Ошибка отправки кода')
       }
@@ -201,6 +210,10 @@ export function SettingsTab({
       setEmailError('Ошибка сети')
     }
     setChangingEmail(false)
+  }
+
+  const handle2FASubmit = async (token: string, useBackupCode: boolean) => {
+    await handleRequestEmailChange(token, useBackupCode)
   }
 
   const handleConfirmEmailChange = async () => {
@@ -684,6 +697,19 @@ export function SettingsTab({
           email={user.email}
           onClose={() => setShowVerifyModal(false)}
           onSuccess={handleVerificationSuccess}
+        />
+      )}
+
+      {show2FAModal && (
+        <TwoFactorPromptModal
+          isOpen={show2FAModal}
+          onClose={() => {
+            setShow2FAModal(false)
+            setPending2FAEmail('')
+          }}
+          onSubmit={handle2FASubmit}
+          title="Смена Email"
+          description="Введите код из приложения аутентификации"
         />
       )}
     </div>
