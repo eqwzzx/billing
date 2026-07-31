@@ -1334,7 +1334,13 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                 <span className="text-foreground font-medium">
                   {resources ? (
                     <span className="flex items-center gap-1.5">
-                      <span>{resources.disk.used} МБ / {formatBytes(server.plan.disk)}</span>
+                      <span>
+                        {resources.disk.used >= 1024 
+                          ? `${(resources.disk.used / 1024).toFixed(1)} ГБ` 
+                          : `${resources.disk.used} МБ`}
+                        {' / '}
+                        {formatBytes(server.plan.disk)}
+                      </span>
                       <span className={`text-xs ${
                         resources.disk.usagePercent > 90 ? 'text-red-500' : 
                         resources.disk.usagePercent > 75 ? 'text-amber-500' : 

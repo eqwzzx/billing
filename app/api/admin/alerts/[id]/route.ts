@@ -15,7 +15,7 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await request.json()
-    const { type, message, actionLabel, actionUrl, isActive, priority } = body
+    const { type, message, actionLabel, actionUrl, isActive, priority, hideAfterFirstDiscount } = body
 
     const alert = await prisma.alert.update({
       where: { id },
@@ -26,6 +26,7 @@ export async function PATCH(
         ...(actionUrl !== undefined && { actionUrl }),
         ...(isActive !== undefined && { isActive }),
         ...(priority !== undefined && { priority }),
+        ...(hideAfterFirstDiscount !== undefined && { hideAfterFirstDiscount }),
       }
     })
 

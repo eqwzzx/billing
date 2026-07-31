@@ -17,17 +17,18 @@ model AdminSettings {
 }
 
 model Alert {
-  id          String      @id @default(cuid())
-  type        alert_type  @default(INFO)
-  message     String      @db.Text
-  actionLabel String?
-  actionUrl   String?
-  isActive    Boolean     @default(true)
-  isSystem    Boolean     @default(false)
-  systemType  String?
-  priority    Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id                      String      @id @default(cuid())
+  type                    alert_type  @default(INFO)
+  message                 String      @db.Text
+  actionLabel             String?
+  actionUrl               String?
+  isActive                Boolean     @default(true)
+  isSystem                Boolean     @default(false)
+  systemType              String?
+  priority                Int         @default(0)
+  hideAfterFirstDiscount  Boolean     @default(false) // Скрывать после использования скидки первого заказа
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
   @@map("Alert")
 }
@@ -865,6 +866,23 @@ model FirstOrderDiscount {
   updatedAt   DateTime @updatedAt
   
   @@map("FirstOrderDiscount")
+}
+
+model CategoryVisibility {
+  id                  String               @id @default(cuid())
+  category            category_visibility  @unique
+  isVisible           Boolean              @default(true)
+  maintenanceMessage  String?              @db.Text
+  updatedAt           DateTime             @updatedAt
+  updatedBy           String?
+  
+  @@map("CategoryVisibility")
+}
+
+enum category_visibility {
+  MINECRAFT
+  VDS
+  CODING
 }
 
 enum marketing_event_type {

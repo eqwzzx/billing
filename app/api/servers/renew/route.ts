@@ -25,7 +25,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { serverId } = body
+    const { serverId, days = 30 } = body
+
+    // Валидация количества дней
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      return NextResponse.json({ 
+        error: 'Некорректный срок продления. Допустимо от 1 до 365 дней.' 
+      }, { status: 400 })
+    }
 
     const server = await prisma.server.findUnique({
       where: { id: serverId },
@@ -46,8 +53,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Полная цена без скидки (план + модификатор ноды)
-    const renewalCost = server.plan.price + (server.node?.priceModifier ?? 0)
+    // Полная цена за месяц без скидки (план + модификатор ноды)
+    const pricePerMonth = server.plan.price + (server.node?.priceModifier ?? 0)
+    
+    // Расчёт стоимости за выбранный период
+    const renewalCost = (pricePerMonth / 30) * days
 
     if (user.balance < renewalCost) {
       return NextResponse.json({ 
@@ -58,9 +68,9 @@ export async function POST(request: NextRequest) {
     }
 
     const newExpiresAt = new Date(server.expiresAt || new Date())
-    newExpiresAt.setDate(newExpiresAt.getDate() + 30)
+    newExpiresAt.setDate(newExpiresAt.getDate() + days)
 
-    // При продлении обновляем paidAmount на полную цену (скидка только при создании)
+    // При продлении обновляем paidAmount на стоимость за выбранный период
     await prisma.server.update({
       where: { id: serverId },
       data: { 
@@ -74,12 +84,13 @@ export async function POST(request: NextRequest) {
       data: { balance: { decrement: renewalCost } },
     })
 
+    const daysLabel = days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'
     await prisma.transaction.create({
       data: {
         userId: user.id,
         type: 'PAYMENT',
         amount: -renewalCost,
-        description: `Продление сервера "${server.name}" на 30 дней`,
+        description: `Продление сервера "${server.name}" на ${days} ${daysLabel}`,
         serverId: server.id,
       },
     })
@@ -105,14 +116,15 @@ export async function POST(request: NextRequest) {
         serverName: server.name,
         planName: server.plan.name,
         nodeName: server.node?.name,
-        daysExtended: 30,
+        daysExtended: days,
       },
     })
 
     return NextResponse.json({ 
       success: true,
-      message: `Сервер продлён на 30 дней`,
+      message: `Сервер продлён на ${days} ${daysLabel}`,
       expiresAt: newExpiresAt,
+      cost: renewalCost,
     })
   } catch (error) {
     console.error('Renew server error:', error)

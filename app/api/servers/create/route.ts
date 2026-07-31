@@ -542,6 +542,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ошибка сохранения сервера' }, { status: 500 })
     }
 
+    // Проверяем статус установки сразу после создания (асинхронно)
+    // Это поможет быстрее обновить статус без ожидания cron
+    setTimeout(async () => {
+      try {
+        console.log('[Create Server] Checking installation status after 10 seconds...')
+        const pteroResponse = await fetch(
+          `${process.env.PTERODACTYL_URL}/api/application/servers/${pterodactylServer.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${process.env.PTERODACTYL_API_KEY}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          }
+        )
+
+        if (pteroResponse.ok) {
+          const pteroData = await pteroResponse.json()
+          const pteroServer = pteroData.attributes
+          
+          // Если установка завершена - обновляем статус
+          if (!pteroServer.is_installing) {
+            const newStatus = pteroServer.is_suspended 
+              ? 'SUSPENDED' 
+              : pteroServer.status === 'running' 
+                ? 'ACTIVE'
+                : 'READY'
+            
+            await prisma.server.update({
+              where: { id: server.id },
+              data: { status: newStatus }
+            })
+            
+            console.log(`[Create Server] Server ${server.id} status updated to ${newStatus}`)
+          }
+        }
+      } catch (error) {
+        console.error('[Create Server] Failed to check installation status:', error)
+      }
+    }, 10000) // Проверяем через 10 секунд
+
     // Помечаем что пользователь использовал скидку первого заказа
     if (firstOrderDiscountApplied) {
       await markFirstOrderDiscountUsed(userId)

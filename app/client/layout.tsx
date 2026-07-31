@@ -11,6 +11,7 @@ import { ClientHeader } from "./_components/client-header"
 import { DeleteServerModal } from "./_components/modals/delete-server-modal"
 import { PasswordModal } from "./_components/modals/password-modal"
 import { DeleteAccountModal } from "./_components/modals/delete-account-modal"
+import { RenewModal } from "./_components/modals/renew-modal"
 import { TwoFactorPromptModal } from "@/components/two-factor-prompt-modal"
 
 interface PteroAccount {
@@ -107,6 +108,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null)
   
   const [renewingServerId, setRenewingServerId] = useState<string | null>(null)
+  const [renewModalOpen, setRenewModalOpen] = useState(false)
+  const [renewModalData, setRenewModalData] = useState<{
+    serverId: string
+    serviceName: string
+    pricePerMonth: number
+  } | null>(null)
   const [osImages, setOsImages] = useState<Array<{ vmManagerId: number; name: string }>>([])
   const [reinstallingVdsId, setReinstallingVdsId] = useState<number | null>(null)
   const [renewingVdsId, setRenewingVdsId] = useState<number | null>(null)
@@ -259,18 +266,41 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   }
 
   const handleRenewVds = async (hostId: number) => {
+    // Находим VDS для получения информации
+    const vds = vdsServers.find(v => v.vmManagerId === hostId)
+    if (!vds) {
+      notify.error('VDS не найден')
+      return
+    }
+
+    const pricePerMonth = vds.price
+    
+    // Открываем модальное окно
+    setRenewModalData({
+      serverId: `vds-${hostId}`, // Используем префикс для различия типов
+      serviceName: vds.name,
+      pricePerMonth,
+    })
+    setRenewModalOpen(true)
+  }
+
+  const handleConfirmRenewVds = async (hostId: number, days: number) => {
     setRenewingVdsId(hostId)
     try {
       const res = await fetch(`/api/user/vds/${hostId}/renew`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days }),
       })
       const data = await res.json()
       
       if (res.ok) {
-        notify.success(data.message || 'VDS продлён на 30 дней')
+        const daysLabel = days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'
+        notify.success(data.message || `VDS продлён на ${days} ${daysLabel}`)
         loadVdsServers()
         checkAuth() // Обновляем баланс
+        setRenewModalOpen(false)
+        setRenewModalData(null)
       } else {
         notify.error(data.error || 'Ошибка продления')
       }
@@ -370,26 +400,62 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   }
 
   const handleRenewServer = async (serverId: string) => {
-    setRenewingServerId(serverId)
-    try {
-      const res = await fetch('/api/servers/renew', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serverId }),
-      })
-      const data = await res.json()
-      
-      if (res.ok) {
-        loadServers()
-        checkAuth()
-        notify.success(data.message || 'Сервер продлён на 30 дней!')
-      } else {
-        notify.error(data.error || 'Ошибка продления')
-      }
-    } catch {
-      notify.error('Ошибка сети')
+    // Находим сервер для получения информации
+    const server = servers.find(s => s.id === serverId)
+    if (!server) {
+      notify.error('Сервер не найден')
+      return
     }
-    setRenewingServerId(null)
+
+    const pricePerMonth = server.plan.price + (server.node?.priceModifier ?? 0)
+    
+    // Открываем модальное окно
+    setRenewModalData({
+      serverId,
+      serviceName: server.name,
+      pricePerMonth,
+    })
+    setRenewModalOpen(true)
+  }
+
+  const handleConfirmRenew = async (days: number) => {
+    if (!renewModalData) return
+
+    const { serverId } = renewModalData
+    
+    // Проверяем, это VDS или обычный сервер
+    if (serverId.startsWith('vds-')) {
+      const hostId = parseInt(serverId.replace('vds-', ''))
+      await handleConfirmRenewVds(hostId, days)
+    } else {
+      // Обычный сервер
+      setRenewingServerId(serverId)
+      try {
+        const res = await fetch('/api/servers/renew', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            serverId,
+            days 
+          }),
+        })
+        const data = await res.json()
+        
+        if (res.ok) {
+          loadServers()
+          checkAuth()
+          const daysLabel = days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'
+          notify.success(data.message || `Сервер продлён на ${days} ${daysLabel}!`)
+          setRenewModalOpen(false)
+          setRenewModalData(null)
+        } else {
+          notify.error(data.error || 'Ошибка продления')
+        }
+      } catch {
+        notify.error('Ошибка сети')
+      }
+      setRenewingServerId(null)
+    }
   }
 
   const createPteroAccount = async () => {
@@ -694,6 +760,22 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             onConfirmPassword={handleDeleteAccountConfirmPassword}
             onConfirmDelete={handleDeleteAccount}
             onClose={closeDeleteAccountModal}
+          />
+        )}
+
+        {renewModalOpen && renewModalData && user && (
+          <RenewModal
+            isOpen={renewModalOpen}
+            onClose={() => {
+              setRenewModalOpen(false)
+              setRenewModalData(null)
+            }}
+            onConfirm={handleConfirmRenew}
+            serviceName={renewModalData.serviceName}
+            pricePerMonth={renewModalData.pricePerMonth}
+            currentBalance={user.balance}
+          />
+        )}
           />
         )}
 

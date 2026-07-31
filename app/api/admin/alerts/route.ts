@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { type, message, actionLabel, actionUrl, isActive, priority } = body
+    const { type, message, actionLabel, actionUrl, isActive, priority, hideAfterFirstDiscount } = body
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         isActive: isActive !== undefined ? isActive : true,
         isSystem: false,
         priority: priority || 0,
+        hideAfterFirstDiscount: hideAfterFirstDiscount || false,
       }
     })
 

@@ -16,6 +16,7 @@ interface Alert {
   isSystem: boolean
   systemType: string | null
   priority: number
+  hideAfterFirstDiscount: boolean
   createdAt: string
   updatedAt: string
 }
@@ -33,6 +34,7 @@ export default function AlertsPage() {
     actionUrl: '',
     isActive: true,
     priority: 0,
+    hideAfterFirstDiscount: false,
   })
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export default function AlertsPage() {
       actionUrl: '',
       isActive: true,
       priority: 0,
+      hideAfterFirstDiscount: false,
     })
     setShowModal(true)
   }
@@ -76,6 +79,7 @@ export default function AlertsPage() {
       actionUrl: alert.actionUrl || '',
       isActive: alert.isActive,
       priority: alert.priority,
+      hideAfterFirstDiscount: alert.hideAfterFirstDiscount,
     })
     setShowModal(true)
   }
@@ -225,6 +229,11 @@ export default function AlertsPage() {
                               System: {alert.systemType}
                             </span>
                           )}
+                          {alert.hideAfterFirstDiscount && (
+                            <span className="ml-2 text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded" title="Скрывается после использования скидки первого заказа">
+                              🎁 Для новых
+                            </span>
+                          )}
                         </span>
                       </div>
                       <p className="text-sm mb-2">{alert.message}</p>
@@ -354,6 +363,18 @@ export default function AlertsPage() {
                     className="size-4"
                   />
                   <label className="text-sm">Активен</label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.hideAfterFirstDiscount}
+                    onChange={(e) => setFormData({ ...formData, hideAfterFirstDiscount: e.target.checked })}
+                    className="size-4"
+                  />
+                  <label className="text-sm">
+                    Скрывать после использования скидки первого заказа
+                  </label>
                 </div>
               </div>
 

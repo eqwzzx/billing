@@ -87,6 +87,8 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
   const [isChangingCategory, setIsChangingCategory] = useState(false)
   const [step, setStep] = useState(1)
   const [openOsDropdown, setOpenOsDropdown] = useState<string | null>(null)
+  const [categoryVisibility, setCategoryVisibility] = useState<Record<string, { isVisible: boolean; maintenanceMessage: string | null }>>({})
+  const [loadingCategories, setLoadingCategories] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown on click outside
@@ -141,6 +143,27 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
   }, [])
 
   useEffect(() => { fetch("/api/settings/global-discount").then(r => r.json()).then(d => setGlobalDiscount(d.discount || 0)).catch(() => {}) }, [])
+  
+  // Загрузка видимости категорий
+  useEffect(() => {
+    setLoadingCategories(true)
+    fetch("/api/categories/visibility")
+      .then(r => r.json())
+      .then(d => {
+        setCategoryVisibility(d)
+        
+        // Если текущая категория скрыта, переключаемся на первую видимую
+        if (d[selectedCategory] && !d[selectedCategory].isVisible) {
+          const visibleCategory = Object.keys(d).find(cat => d[cat].isVisible)
+          if (visibleCategory) {
+            setSelectedCategory(visibleCategory)
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCategories(false))
+  }, [])
+  
   useEffect(() => {
     // Загрузка настроек скидки первого заказа
     if (user.firstOrderDiscount) {
@@ -238,6 +261,17 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
     return false
   })
   
+  // Автоматический выбор первой доступной ноды при смене плана
+  useEffect(() => {
+    if (selectedPlan && selectedCategory !== "VDS" && availableNodes.length > 0) {
+      // Если нода не выбрана или выбранная нода не в списке доступных
+      if (!selectedNode || !availableNodes.find(n => n.id === selectedNode)) {
+        setSelectedNode(availableNodes[0].id)
+        console.log(`[CreateTab] Auto-selected first available node: ${availableNodes[0].name}`)
+      }
+    }
+  }, [selectedPlan, selectedCategory, availableNodes.length])
+  
   console.log('[CreateTab] Available nodes after filter:', availableNodes.map(n => ({ name: n.name, type: n.nodeType })))
 
   const checkPromo = async () => {
@@ -317,24 +351,54 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
               { id: "MINECRAFT", icon: Server, label: "Minecraft", color: "from-emerald-500/20", image: "/client/crystalminecraft.png" },
               { id: "VDS", icon: Cloud, label: "VDS", color: "from-gray-500/20", image: "/client/crystalvdscategory.png" },
               { id: "CODING", icon: Code, label: "Coding", color: "from-purple-500/20", image: "/client/crystalcoding.png" },
-            ].map((cat) => (
-              <button key={cat.id} onClick={() => { 
-                setIsChangingCategory(true)
-                setTimeout(() => {
-                  setSelectedCategory(cat.id)
-                  setSelectedPlan(null)
-                  setSelectedNode(null)
-                  setIsChangingCategory(false)
-                }, 150)
-              }}
-                className={`relative rounded-xl border p-3 text-left overflow-hidden transition-colors duration-200 ${selectedCategory === cat.id ? "border-foreground/30 bg-gradient-to-br " + cat.color + " to-transparent" : "border-border/50 bg-card/30 hover:border-border"}`}>
-                {cat.image && <img src={cat.image} alt="" className={`absolute -right-6 -bottom-8 h-24 w-auto -rotate-12 drop-shadow-lg transition-all duration-300 ${selectedCategory === cat.id ? 'opacity-100 scale-110' : 'opacity-50 scale-100'}`} />}
-                <div className={`size-8 rounded-lg flex items-center justify-center mb-2 transition-all duration-300 ${selectedCategory === cat.id ? "bg-foreground/10" : "bg-muted/50"}`}>
-                  <cat.icon className={`size-4 transition-colors duration-300 ${selectedCategory === cat.id ? "text-foreground" : "text-muted-foreground"}`} />
-                </div>
-                <h3 className={`font-medium text-sm transition-colors duration-300 ${selectedCategory === cat.id ? "text-foreground" : "text-muted-foreground"}`}>{cat.label}</h3>
-              </button>
-            ))}
+            ]
+              .filter(cat => categoryVisibility[cat.id]?.isVisible !== false) // Фильтруем скрытые категории
+              .map((cat) => {
+                const visibility = categoryVisibility[cat.id]
+                const isHidden = visibility && !visibility.isVisible
+                
+                return (
+                  <button 
+                    key={cat.id} 
+                    onClick={() => { 
+                      if (isHidden) {
+                        if (visibility.maintenanceMessage) {
+                          notify.error(visibility.maintenanceMessage)
+                        } else {
+                          notify.error('Эта категория временно недоступна')
+                        }
+                        return
+                      }
+                      
+                      setIsChangingCategory(true)
+                      setTimeout(() => {
+                        setSelectedCategory(cat.id)
+                        setSelectedPlan(null)
+                        setSelectedNode(null)
+                        setIsChangingCategory(false)
+                      }, 150)
+                    }}
+                    disabled={isHidden}
+                    className={`relative rounded-xl border p-3 text-left overflow-hidden transition-colors duration-200 ${
+                      selectedCategory === cat.id 
+                        ? "border-foreground/30 bg-gradient-to-br " + cat.color + " to-transparent" 
+                        : isHidden
+                          ? "border-border/50 bg-card/30 opacity-50 cursor-not-allowed"
+                          : "border-border/50 bg-card/30 hover:border-border"
+                    }`}
+                  >
+                    {cat.image && <img src={cat.image} alt="" className={`absolute -right-6 -bottom-8 h-24 w-auto -rotate-12 drop-shadow-lg transition-all duration-300 ${selectedCategory === cat.id ? 'opacity-100 scale-110' : 'opacity-50 scale-100'}`} />}
+                    <div className={`size-8 rounded-lg flex items-center justify-center mb-2 transition-all duration-300 ${selectedCategory === cat.id ? "bg-foreground/10" : "bg-muted/50"}`}>
+                      <cat.icon className={`size-4 transition-colors duration-300 ${selectedCategory === cat.id ? "text-foreground" : "text-muted-foreground"}`} />
+                    </div>
+                    <h3 className={`font-medium text-sm transition-colors duration-300 ${selectedCategory === cat.id ? "text-foreground" : "text-muted-foreground"}`}>
+                      {cat.label}
+                      {isHidden && <span className="block text-[10px] text-amber-500 mt-0.5">Тех. работы</span>}
+                    </h3>
+                  </button>
+                )
+              }
+            )}
           </div>
 
           <div>
@@ -577,22 +641,38 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                   <Globe className="size-3" />
-                  Локация
+                  Локация {!selectedNode && availableNodes.length > 0 && <span className="text-[10px] text-amber-500">(выберите)</span>}
                 </label>
                 {availableNodes.length === 0 ? <div className="rounded-lg border border-border/50 bg-card/30 px-3 py-2.5 text-sm text-muted-foreground">Нет локаций</div> : (
                   <div className="space-y-1.5">
                     {availableNodes.slice(0, 3).map(node => {
                       const load = calculateNodeLoad(node)
+                      const isSelected = selectedNode === node.id
                       return (
                         <button key={node.id} onClick={() => setSelectedNode(node.id)}
-                          className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${selectedNode === node.id ? "border-foreground/30 bg-foreground/5" : "border-border/50 bg-card/30 hover:border-border"}`}>
-                          <div className="flex items-center gap-2">
-                            {node.countryCode && locationFlags[node.countryCode] ? <img src={locationFlags[node.countryCode]} alt="" className="size-4 rounded" /> : <Globe className="size-4 text-muted-foreground" />}
-                            <span className="font-medium">{node.name}</span>
+                          className={`w-full flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-all duration-200 ${
+                            isSelected 
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/20 shadow-sm" 
+                              : "border-border/50 bg-card/30 hover:border-border hover:bg-card/50"
+                          }`}>
+                          <div className="flex items-center gap-2.5">
+                            {node.countryCode && locationFlags[node.countryCode] ? (
+                              <img src={locationFlags[node.countryCode]} alt="" className={`size-5 rounded ${isSelected ? 'ring-2 ring-primary/30' : ''}`} />
+                            ) : (
+                              <Globe className={`size-5 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                            )}
+                            <span className={`font-medium ${isSelected ? 'text-foreground' : 'text-foreground/80'}`}>{node.name}</span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${load > 80 ? "bg-red-500/10 text-red-500" : load > 60 ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"}`}>{load}%</span>
-                            {selectedNode === node.id && <Check className="size-3.5 text-foreground" />}
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${load > 80 ? "bg-red-500/10 text-red-500" : load > 60 ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500"}`}>
+                              {load}%
+                            </span>
+                            {isSelected && (
+                              <div className="flex items-center gap-1 text-primary">
+                                <Check className="size-4 font-bold" />
+                                <span className="text-[10px] font-semibold">Выбрано</span>
+                              </div>
+                            )}
                           </div>
                         </button>
                       )

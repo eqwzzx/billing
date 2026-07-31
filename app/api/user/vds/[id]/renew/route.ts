@@ -32,7 +32,7 @@ function getAuthFromRequest(request: NextRequest): AuthPayload | null {
   }
 }
 
-// POST - продлить VDS на 30 дней
+// POST - продлить VDS на выбранное количество дней
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -50,6 +50,16 @@ export async function POST(
   }
 
   try {
+    const body = await request.json()
+    const { days = 30 } = body
+
+    // Валидация количества дней
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      return NextResponse.json({ 
+        error: 'Некорректный срок продления. Допустимо от 1 до 365 дней.' 
+      }, { status: 400 })
+    }
+
     const rentals = getVMManager6Rentals(auth.userId)
     const rental = rentals.find(r => r.vmmanager6_host_id === hostId)
     
@@ -67,7 +77,10 @@ export async function POST(
         { status: 404 }
       )
     }
-    const price = plan.price
+    
+    // Расчёт стоимости за выбранный период
+    const pricePerMonth = plan.price
+    const price = (pricePerMonth / 30) * days
 
     const user = await prisma.user.findUnique({
       where: { id: auth.userId }
@@ -90,7 +103,7 @@ export async function POST(
       }, { status: 400 })
     }
 
-    const updatedRental = renewVMManager6Rental(rental.id, 30)
+    const updatedRental = renewVMManager6Rental(rental.id, days)
     
     if (!updatedRental) {
       await prisma.user.update({
@@ -100,21 +113,22 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to renew rental' }, { status: 500 })
     }
 
+    const daysLabel = days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'
     await prisma.transaction.create({
       data: {
         userId: auth.userId,
         amount: -price,
         type: 'PAYMENT',
-        description: `Продление VDS: ${rental.plan_name}`,
+        description: `Продление VDS: ${rental.plan_name} на ${days} ${daysLabel}`,
         status: 'COMPLETED'
       }
     })
 
-    console.log(`[VDS Renew] User ${auth.userId} renewed VDS ${hostId} for ${price} RUB`)
+    console.log(`[VDS Renew] User ${auth.userId} renewed VDS ${hostId} for ${days} days (${price} RUB)`)
 
     return NextResponse.json({
       success: true,
-      message: 'VDS продлён на 30 дней',
+      message: `VDS продлён на ${days} ${daysLabel}`,
       expiresAt: updatedRental.expires_at,
       price
     })
