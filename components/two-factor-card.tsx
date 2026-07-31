@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Shield, Smartphone, CheckCircle, AlertTriangle, Key, Download, Loader2, XCircle } from 'lucide-react'
 import Image from 'next/image'
 import { toast } from 'sonner'
@@ -24,6 +25,11 @@ export function TwoFactorCard() {
   const [verifyCode, setVerifyCode] = useState('')
   const [setupStep, setSetupStep] = useState<'qr' | 'verify' | 'backup'>('qr')
   const [processing, setProcessing] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     fetchStatus()
@@ -269,9 +275,9 @@ export function TwoFactorCard() {
       </div>
 
       {/* Диалог настройки 2FA */}
-      {showSetup && (
+      {mounted && showSetup && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border shadow-xl animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border shadow-xl animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-border/30">
               <h3 className="font-heading font-bold text-lg sm:text-xl">Настройка двухфакторной аутентификации</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -300,8 +306,8 @@ export function TwoFactorCard() {
                         <Image 
                           src={qrCode} 
                           alt="QR Code" 
-                          width={280} 
-                          height={280} 
+                          width={200} 
+                          height={200} 
                           className="border-4 border-gray-200 rounded-lg shadow-sm" 
                         />
                       )}
@@ -464,11 +470,12 @@ export function TwoFactorCard() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Диалог отключения 2FA */}
-      {showDisable && (
+      {mounted && showDisable && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
           <div className="w-full max-w-lg bg-card rounded-2xl border border-border shadow-xl animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-border/30">
@@ -529,13 +536,14 @@ export function TwoFactorCard() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Диалог обновления backup кодов */}
-      {showRegenerate && (
+      {mounted && showRegenerate && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border shadow-xl animate-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-card rounded-2xl border border-border shadow-xl animate-in zoom-in-95 duration-200">
             <div className="p-5 border-b border-border/30">
               <h3 className="font-heading font-bold text-lg">Обновить резервные коды</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -664,7 +672,8 @@ export function TwoFactorCard() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
