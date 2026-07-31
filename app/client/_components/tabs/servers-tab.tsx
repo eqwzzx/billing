@@ -99,7 +99,7 @@ export function ServersTab({
   const [startupModalServer, setStartupModalServer] = useState<ServerData | null>(null)
 
   // Upgrade modal state
-  const [upgradeModalServer, setUpgradeModalServer] = useState<ServerData | null>(null)
+  const [upgradeModalServer, setUpgradeModalServer] = useState<(ServerData & { diskUsage?: { used: number; total: number; usagePercent: number } }) | null>(null)
   const [selectedUpgradePlan, setSelectedUpgradePlan] = useState<string | null>(null)
   const [upgradingServerId, setUpgradingServerId] = useState<string | null>(null)
   const [isClosingUpgradeModal, setIsClosingUpgradeModal] = useState(false)
@@ -224,7 +224,7 @@ export function ServersTab({
     }
   }, [newPassword, passwordModalVds, closePasswordModal, changingPassword])
 
-  // Обработчик апгрейда сервера
+  // Обработчик изменения тарифа сервера (апгрейд/даунгрейд)
   const handleUpgradeServer = useCallback(async () => {
     if (!upgradeModalServer || !selectedUpgradePlan || upgradingServerId) return
     
@@ -238,7 +238,7 @@ export function ServersTab({
       const data = await res.json()
       
       if (res.ok && data.success) {
-        toast.success(data.message || 'Сервер успешно апгрейднут!')
+        toast.success(data.message || 'Тариф успешно изменён!')
         setIsClosingUpgradeModal(true)
         setTimeout(() => {
           setUpgradeModalServer(null)
@@ -248,17 +248,35 @@ export function ServersTab({
         // Перезагружаем список серверов
         window.location.reload()
       } else {
-        toast.error(data.error || 'Не удалось апгрейдить сервер')
+        toast.error(data.error || 'Не удалось изменить тариф')
       }
     } catch (error) {
-      console.error('Upgrade error:', error)
-      toast.error('Ошибка при апгрейде сервера')
+      console.error('Plan change error:', error)
+      toast.error('Ошибка при изменении тарифа')
     } finally {
       setUpgradingServerId(null)
     }
   }, [upgradeModalServer, selectedUpgradePlan, upgradingServerId])
 
-  // Открыть панель VMManager через SSO
+  // Открыть модалку изменения тарифа (с загрузкой ресурсов)
+  const handleOpenUpgradeModal = useCallback(async (server: ServerData) => {
+    // Загружаем статистику ресурсов для проверки диска
+    try {
+      const res = await fetch(`/api/servers/${server.id}/resources`)
+      const data = await res.json()
+      
+      if (data.success && data.resources) {
+        setUpgradeModalServer({ ...server, diskUsage: data.resources.disk })
+      } else {
+        // Если не удалось загрузить ресурсы, открываем без них
+        setUpgradeModalServer(server)
+      }
+    } catch (error) {
+      console.error('Failed to load resources:', error)
+      // Открываем модалку без данных о ресурсах
+      setUpgradeModalServer(server)
+    }
+  }, [])
   const openVdsPanel = useCallback(async (hostId: number) => {
     setOpeningPanelId(hostId)
     try {
@@ -388,7 +406,7 @@ export function ServersTab({
                     onRenewServer={onRenewServer}
                     isRenewing={renewingServerId === server.id}
                     onStartupClick={() => setStartupModalServer(server)}
-                    onUpgradeClick={() => setUpgradeModalServer(server)}
+                    onUpgradeClick={() => handleOpenUpgradeModal(server)}
                   />
                 )
               })}
@@ -416,7 +434,7 @@ export function ServersTab({
                     isRenewing={renewingServerId === server.id}
                     isCoding={true}
                     onStartupClick={() => setStartupModalServer(server)}
-                    onUpgradeClick={() => setUpgradeModalServer(server)}
+                    onUpgradeClick={() => handleOpenUpgradeModal(server)}
                   />
                 )
               })}
@@ -758,7 +776,7 @@ export function ServersTab({
         />
       )}
 
-      {/* Модальное окно апгрейда тарифа */}
+      {/* Модальное окно изменения тарифа (апгрейд/даунгрейд) */}
       {upgradeModalServer && (
         <div 
           className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${isClosingUpgradeModal ? 'animate-out fade-out duration-150' : 'animate-in fade-in duration-200'}`} 
@@ -780,13 +798,13 @@ export function ServersTab({
                 <Activity className="size-5 text-purple-500" />
               </div>
               <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">Улучшить тариф</h3>
+                <h3 className="font-heading text-lg font-bold text-foreground">Изменить тариф</h3>
                 <p className="text-xs text-muted-foreground">Сервер: {upgradeModalServer.name}</p>
               </div>
             </div>
             
             <p className="text-sm text-muted-foreground mb-4">
-              Выберите новый тариф. Вы получите возврат за неиспользованное время текущего тарифа.
+              Выберите новый тариф. При улучшении вы доплатите разницу, при понижении — получите возврат средств за неиспользованное время.
             </p>
             
             <div className="grid gap-3 mb-4">
@@ -794,7 +812,7 @@ export function ServersTab({
                 .filter(p => 
                   p.category === upgradeModalServer.plan.category && 
                   !p.isFree && 
-                  p.price > upgradeModalServer.plan.price &&
+                  p.price !== upgradeModalServer.plan.price &&
                   p.id !== upgradeModalServer.planId
                 )
                 .sort((a, b) => a.price - b.price)
@@ -802,30 +820,66 @@ export function ServersTab({
                   const currentPrice = upgradeModalServer.plan.price + (upgradeModalServer.node?.priceModifier || 0)
                   const newPrice = plan.price + (upgradeModalServer.node?.priceModifier || 0)
                   const isSelected = selectedUpgradePlan === plan.id
+                  const isUpgrade = newPrice > currentPrice
+                  const priceDiff = Math.abs(newPrice - currentPrice)
                   
                   return (
                     <button
                       key={plan.id}
                       onClick={() => setSelectedUpgradePlan(plan.id)}
+                      disabled={!isUpgrade && upgradeModalServer.diskUsage && upgradeModalServer.diskUsage.used > plan.disk}
                       className={`text-left p-4 rounded-xl border-2 transition-all ${
                         isSelected 
                           ? 'border-purple-500 bg-purple-500/5' 
+                          : !isUpgrade && upgradeModalServer.diskUsage && upgradeModalServer.diskUsage.used > plan.disk
+                          ? 'border-red-500/30 bg-red-500/5 opacity-60 cursor-not-allowed'
                           : 'border-border/50 hover:border-border'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-foreground">{plan.name}</h4>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground line-through">{currentPrice} ₽</span>
-                          <span className="text-lg font-bold text-purple-500">{newPrice} ₽</span>
+                          <h4 className="font-semibold text-foreground">{plan.name}</h4>
+                          {isUpgrade ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">
+                              Улучшение
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 font-medium">
+                              Понижение
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">{newPrice} ₽</span>
                           <span className="text-xs text-muted-foreground">/мес</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><MemoryStick className="size-3.5" />{formatBytes(plan.ram)}</span>
-                        <span className="flex items-center gap-1"><Cpu className="size-3.5" />{plan.cpu}%</span>
-                        <span className="flex items-center gap-1"><HardDrive className="size-3.5" />{formatBytes(plan.disk)}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1"><MemoryStick className="size-3.5" />{formatBytes(plan.ram)}</span>
+                          <span className="flex items-center gap-1"><Cpu className="size-3.5" />{plan.cpu}%</span>
+                          <span className="flex items-center gap-1"><HardDrive className="size-3.5" />{formatBytes(plan.disk)}</span>
+                        </div>
+                        <div className="text-right">
+                          {isUpgrade ? (
+                            <p className="text-xs text-muted-foreground">
+                              Доплата: <span className="text-amber-500 font-medium">~{priceDiff} ₽</span>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Возврат: <span className="text-emerald-500 font-medium">~{priceDiff} ₽</span>
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      {!isUpgrade && upgradeModalServer.diskUsage && upgradeModalServer.diskUsage.used > plan.disk && (
+                        <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                          <p className="text-xs text-red-600 flex items-center gap-1.5">
+                            <HardDrive className="size-3 shrink-0" />
+                            <span>Используется {upgradeModalServer.diskUsage.used} МБ, требуется освободить {upgradeModalServer.diskUsage.used - plan.disk} МБ</span>
+                          </p>
+                        </div>
+                      )}
                     </button>
                   )
                 })}
@@ -834,12 +888,12 @@ export function ServersTab({
             {plans.filter(p => 
               p.category === upgradeModalServer.plan.category && 
               !p.isFree && 
-              p.price > upgradeModalServer.plan.price &&
+              p.price !== upgradeModalServer.plan.price &&
               p.id !== upgradeModalServer.planId
             ).length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                <p>Нет доступных тарифов для апгрейда</p>
-                <p className="text-xs mt-1">У вас уже максимальный тариф в этой категории</p>
+                <p>Нет доступных тарифов для изменения</p>
+                <p className="text-xs mt-1">У вас единственный тариф в этой категории</p>
               </div>
             )}
 
@@ -865,7 +919,7 @@ export function ServersTab({
                 {upgradingServerId === upgradeModalServer.id ? (
                   <Loader2 className="size-4 animate-spin mx-auto" />
                 ) : (
-                  'Апгрейдить'
+                  'Изменить тариф'
                 )}
               </button>
             </div>
@@ -1171,6 +1225,28 @@ interface ServerCardProps {
 }
 
 function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenewServer, isRenewing, isCoding = false, onStartupClick, onUpgradeClick }: ServerCardProps) {
+  const [resources, setResources] = useState<{
+    disk: { used: number; total: number; usagePercent: number }
+    memory: { used: number; total: number; usagePercent: number }
+  } | null>(null)
+  const [loadingResources, setLoadingResources] = useState(false)
+
+  // Загружаем статистику ресурсов при раскрытии карточки
+  useEffect(() => {
+    if (isExpanded && !resources && !loadingResources && server.status !== 'DELETED' && server.status !== 'INSTALLING') {
+      setLoadingResources(true)
+      fetch(`/api/servers/${server.id}/resources`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.resources) {
+            setResources(data.resources)
+          }
+        })
+        .catch(err => console.error('Failed to load resources:', err))
+        .finally(() => setLoadingResources(false))
+    }
+  }, [isExpanded, server.id, resources, loadingResources, server.status])
+
   const statusConfig = {
     ACTIVE: { color: 'emerald', label: 'Онлайн' },
     INSTALLING: { color: 'amber', label: 'Установка' },
@@ -1255,8 +1331,37 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-1.5"><HardDrive className="size-3.5" />Диск</span>
-                <span className="text-foreground font-medium">{formatBytes(server.plan.disk)}</span>
+                <span className="text-foreground font-medium">
+                  {resources ? (
+                    <span className="flex items-center gap-1.5">
+                      <span>{resources.disk.used} МБ / {formatBytes(server.plan.disk)}</span>
+                      <span className={`text-xs ${
+                        resources.disk.usagePercent > 90 ? 'text-red-500' : 
+                        resources.disk.usagePercent > 75 ? 'text-amber-500' : 
+                        'text-emerald-500'
+                      }`}>
+                        ({resources.disk.usagePercent}%)
+                      </span>
+                    </span>
+                  ) : (
+                    formatBytes(server.plan.disk)
+                  )}
+                </span>
               </div>
+              {resources && (
+                <div className="mt-2">
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-500 ${
+                        resources.disk.usagePercent > 90 ? 'bg-red-500' : 
+                        resources.disk.usagePercent > 75 ? 'bg-amber-500' : 
+                        'bg-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min(resources.disk.usagePercent, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1358,7 +1463,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/20 py-2 text-sm font-medium text-purple-500 hover:bg-purple-500/20 transition-colors duration-200"
                 >
                   <Activity className="size-4" />
-                  Улучшить тариф
+                  Изменить тариф
                 </button>
               )}
               

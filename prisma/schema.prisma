@@ -446,6 +446,9 @@ enum transaction_method {
 enum pterodactylnode_nodeType {
   MINECRAFT
   CODING
+  VDS
+  ALL
+}
 }
 
 enum vds_server_status {

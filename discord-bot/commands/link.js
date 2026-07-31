@@ -7,7 +7,7 @@ export default {
   
   async execute(interaction) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const linkUrl = `${appUrl}/dashboard/profile`;
+    const linkUrl = `${appUrl}/client/settings`;
 
     const embed = new EmbedBuilder()
       .setColor('#5865F2')

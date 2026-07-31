@@ -46,7 +46,7 @@ export async function POST(
       return NextResponse.json({ error: 'Новый тариф не найден' }, { status: 404 })
     }
 
-    // Нельзя апгрейдить с/на бесплатный тариф
+    // Нельзя изменять тариф с/на бесплатный тариф
     if (server.plan.isFree || newPlan.isFree) {
       return NextResponse.json({ 
         error: 'Нельзя изменить тариф для бесплатных серверов' 
@@ -56,19 +56,22 @@ export async function POST(
     // Проверка что новый тариф той же категории
     if (server.plan.category !== newPlan.category) {
       return NextResponse.json({ 
-        error: 'Можно апгрейдить только на тариф той же категории' 
+        error: 'Можно изменить тариф только на тариф той же категории' 
       }, { status: 400 })
     }
 
-    // Нельзя понизить тариф
+    // Проверяем что тарифы разные
     const currentPlanPrice = server.plan.price + (server.node?.priceModifier || 0)
     const newPlanPrice = newPlan.price + (server.node?.priceModifier || 0)
     
-    if (newPlanPrice <= currentPlanPrice) {
+    if (newPlanPrice === currentPlanPrice) {
       return NextResponse.json({ 
-        error: 'Новый тариф должен быть дороже текущего' 
+        error: 'Новый тариф не отличается от текущего' 
       }, { status: 400 })
     }
+    
+    const isUpgrade = newPlanPrice > currentPlanPrice
+    const isDowngrade = newPlanPrice < currentPlanPrice
 
     const user = await prisma.user.findUnique({ where: { id: userId } })
     if (!user) {
@@ -81,7 +84,7 @@ export async function POST(
     
     if (!expiresAt || expiresAt <= now) {
       return NextResponse.json({ 
-        error: 'Срок аренды истёк. Продлите сервер перед апгрейдом.' 
+        error: 'Срок аренды истёк. Продлите сервер перед изменением тарифа.' 
       }, { status: 400 })
     }
 
@@ -90,10 +93,10 @@ export async function POST(
     const remainingTime = expiresAt.getTime() - now.getTime()
     const remainingDays = remainingTime / (24 * 60 * 60 * 1000)
     
-    // Минимум 1 день для апгрейда
+    // Минимум 1 день для изменения тарифа
     if (remainingDays < 1) {
       return NextResponse.json({ 
-        error: 'Осталось меньше суток аренды. Продлите сервер перед апгрейдом.' 
+        error: 'Осталось меньше суток аренды. Продлите сервер перед изменением тарифа.' 
       }, { status: 400 })
     }
 
@@ -104,16 +107,13 @@ export async function POST(
     // Стоимость нового тарифа за оставшееся время
     const newPlanCost = Math.round((newPlanPrice / totalTime) * remainingTime)
     
-    // Итоговая сумма к оплате = стоимость нового тарифа - возврат за старый
+    // Итоговая сумма к оплате/возврату
+    // При апгрейде: totalCost > 0 (нужно доплатить)
+    // При даунгрейде: totalCost < 0 (вернем разницу)
     const totalCost = newPlanCost - refundAmount
 
-    if (totalCost < 0) {
-      return NextResponse.json({ 
-        error: 'Ошибка расчёта стоимости апгрейда' 
-      }, { status: 500 })
-    }
-
-    if (user.balance < totalCost) {
+    // При апгрейде проверяем баланс
+    if (isUpgrade && user.balance < totalCost) {
       return NextResponse.json({ 
         error: 'Недостаточно средств на балансе',
         required: totalCost,
@@ -133,10 +133,43 @@ export async function POST(
 
     try {
       // Получаем текущий сервер из Pterodactyl для получения allocation ID
-      const { getPterodactylServer } = await import('@/lib/pterodactyl')
+      const { getPterodactylServer, getServerResources } = await import('@/lib/pterodactyl')
       const pteroServer = await getPterodactylServer(server.pterodactylId)
       
-      console.log('[Upgrade Server] Pterodactyl server data:', JSON.stringify(pteroServer, null, 2))
+      console.log('[Change Plan] Pterodactyl server data:', JSON.stringify(pteroServer, null, 2))
+      
+      // При даунгрейде проверяем использование диска
+      if (isDowngrade) {
+        console.log('[Change Plan] Downgrade detected, checking disk usage...')
+        
+        // Получаем статистику использования ресурсов
+        const resources = await getServerResources(server.pterodactylUuid)
+        
+        if (resources) {
+          const usedDiskMB = Math.ceil(resources.disk_bytes / 1024 / 1024)
+          const newDiskLimitMB = newPlan.disk
+          
+          console.log('[Change Plan] Disk check:', {
+            usedDiskMB,
+            newDiskLimitMB,
+            currentDiskLimitMB: server.plan.disk,
+          })
+          
+          // Если используется больше места, чем позволяет новый тариф
+          if (usedDiskMB > newDiskLimitMB) {
+            return NextResponse.json({ 
+              error: `На сервере используется ${usedDiskMB} МБ, а новый тариф позволяет только ${newDiskLimitMB} МБ. Освободите ${usedDiskMB - newDiskLimitMB} МБ перед понижением тарифа.`,
+              usedDiskMB,
+              newDiskLimitMB,
+              requiredToFree: usedDiskMB - newDiskLimitMB,
+            }, { status: 400 })
+          }
+          
+          console.log('[Change Plan] Disk check passed')
+        } else {
+          console.warn('[Change Plan] Could not get resources, skipping disk check')
+        }
+      }
       
       // Получаем ID основного allocation
       let defaultAllocationId: number | undefined
@@ -152,17 +185,17 @@ export async function POST(
           : pteroServer.allocation?.id
       }
       
-      console.log('[Upgrade Server] Found allocation ID:', defaultAllocationId)
+      console.log('[Change Plan] Found allocation ID:', defaultAllocationId)
       
       if (!defaultAllocationId) {
-        console.error('[Upgrade Server] No allocation found for server. Server data:', pteroServer)
+        console.error('[Change Plan] No allocation found for server. Server data:', pteroServer)
         return NextResponse.json({ 
           error: 'Не удалось найти порт сервера. Обратитесь в поддержку.' 
         }, { status: 500 })
       }
 
       // Обновляем build сервера с текущим allocation
-      console.log('[Upgrade Server] Updating server build with allocation:', defaultAllocationId)
+      console.log('[Change Plan] Updating server build with allocation:', defaultAllocationId)
       await updateServerBuild(server.pterodactylId, {
         ram: newPlan.ram,
         cpu: newPlan.cpu,
@@ -172,20 +205,30 @@ export async function POST(
         allocations: newPlan.allocations || 1,
         allocationId: defaultAllocationId,
       })
-      console.log('[Upgrade Server] Server build updated successfully')
+      console.log('[Change Plan] Server build updated successfully')
     } catch (pteroError: any) {
-      console.error('[Upgrade Server] Pterodactyl error:', pteroError)
+      console.error('[Change Plan] Pterodactyl error:', pteroError)
       const errorMsg = pteroError?.message || 'Неизвестная ошибка'
       return NextResponse.json({ 
         error: 'Ошибка обновления сервера в панели управления: ' + errorMsg 
       }, { status: 500 })
     }
 
-    // Списываем средства
-    await prisma.user.update({
-      where: { id: userId },
-      data: { balance: { decrement: totalCost } },
-    })
+    // Обновляем баланс пользователя
+    // При апгрейде: списываем (decrement)
+    // При даунгрейде: возвращаем (increment)
+    if (isUpgrade) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { balance: { decrement: totalCost } },
+      })
+    } else {
+      // При даунгрейде totalCost отрицательный, поэтому вычитаем его (добавляем модуль)
+      await prisma.user.update({
+        where: { id: userId },
+        data: { balance: { increment: Math.abs(totalCost) } },
+      })
+    }
 
     // Обновляем сервер в БД
     await prisma.server.update({
@@ -197,31 +240,36 @@ export async function POST(
     })
 
     // Создаём транзакцию
+    const operationType = isUpgrade ? 'Апгрейд' : 'Даунгрейд'
     await prisma.transaction.create({
       data: {
         userId,
-        type: 'PAYMENT',
-        amount: -totalCost,
-        description: `Апгрейд сервера "${server.name}" с ${server.plan.name} на ${newPlan.name} (осталось ${Math.round(remainingDays)} дн.)`,
+        type: isUpgrade ? 'PAYMENT' : 'REFUND',
+        amount: isUpgrade ? -totalCost : Math.abs(totalCost),
+        description: `${operationType} сервера "${server.name}" с ${server.plan.name} на ${newPlan.name} (осталось ${Math.round(remainingDays)} дн.)`,
         serverId: server.id,
       },
     })
 
     // Отправляем лог в Discord
+    const logDescription = isUpgrade 
+      ? `Возврат: ${refundAmount} ₽, Доплата: ${totalCost} ₽, Осталось: ${Math.round(remainingDays)} дн.`
+      : `Возврат за старый: ${refundAmount} ₽, Стоимость нового: ${newPlanCost} ₽, Возврат разницы: ${Math.abs(totalCost)} ₽, Осталось: ${Math.round(remainingDays)} дн.`
+    
     await sendDiscordLog({
-      type: 'SERVER_UPGRADE',
+      type: isUpgrade ? 'SERVER_UPGRADE' : 'SERVER_DOWNGRADE',
       userId,
       userEmail: user.email,
-      amount: totalCost,
+      amount: Math.abs(totalCost),
       serverName: server.name,
       planName: `${server.plan.name} → ${newPlan.name}`,
-      description: `Возврат: ${refundAmount} ₽, Доплата: ${totalCost} ₽, Осталось: ${Math.round(remainingDays)} дн.`,
+      description: logDescription,
     })
 
     // Логирование для админки
     await adminLogger.log({
       userId,
-      action: 'SERVER_UPGRADE',
+      action: isUpgrade ? 'SERVER_UPGRADE' : 'SERVER_DOWNGRADE',
       details: `Сервер ${server.id} (${server.name}): ${server.plan.name} → ${newPlan.name}`,
       metadata: {
         serverId: server.id,
@@ -229,16 +277,24 @@ export async function POST(
         newPlan: newPlan.name,
         refund: refundAmount,
         cost: totalCost,
+        isUpgrade,
+        isDowngrade,
         remainingDays: Math.round(remainingDays),
       },
     })
 
+    const successMessage = isUpgrade 
+      ? `Сервер успешно улучшен до ${newPlan.name}`
+      : `Тариф успешно понижен до ${newPlan.name}. На баланс возвращено ${Math.abs(totalCost)} ₽`
+    
     return NextResponse.json({ 
       success: true,
-      message: `Сервер успешно апгрейднут на ${newPlan.name}`,
+      message: successMessage,
+      isUpgrade,
+      isDowngrade,
       details: {
         refund: refundAmount,
-        cost: totalCost,
+        cost: isUpgrade ? totalCost : Math.abs(totalCost),
         remainingDays: Math.round(remainingDays),
         newPlan: {
           name: newPlan.name,
@@ -249,9 +305,9 @@ export async function POST(
       },
     })
   } catch (error) {
-    console.error('[Upgrade Server] Error:', error)
+    console.error('[Change Plan] Error:', error)
     return NextResponse.json({ 
-      error: 'Ошибка при апгрейде сервера' 
+      error: 'Ошибка при изменении тарифа сервера' 
     }, { status: 500 })
   }
 }

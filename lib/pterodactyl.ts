@@ -392,6 +392,71 @@ export async function getPterodactylServerStatus(uuid: string): Promise<{ state:
   }
 }
 
+/**
+ * Получить информацию об использовании ресурсов сервера (RAM, CPU, Disk)
+ * Возвращает данные в байтах для диска и в МБ для памяти
+ */
+export async function getServerResources(uuid: string): Promise<{
+  memory_bytes: number
+  disk_bytes: number
+  cpu_absolute: number
+  network_rx_bytes: number
+  network_tx_bytes: number
+  uptime: number
+  state: string
+} | null> {
+  const PTERODACTYL_URL = process.env.PTERODACTYL_URL
+  const PTERODACTYL_CLIENT_KEY = process.env.PTERODACTYL_CLIENT_KEY
+  
+  if (!PTERODACTYL_URL || !PTERODACTYL_CLIENT_KEY) {
+    console.warn('[Pterodactyl] Client credentials not configured for resources')
+    return null
+  }
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+  try {
+    const response = await fetch(`${PTERODACTYL_URL}/api/client/servers/${uuid}/resources`, {
+      headers: {
+        'Authorization': `Bearer ${PTERODACTYL_CLIENT_KEY}`,
+        'Accept': 'application/json',
+      },
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      console.warn(`[Pterodactyl] Resources API returned ${response.status} for ${uuid}`)
+      return null
+    }
+
+    const data = await response.json()
+    const attributes = data.attributes
+    
+    return {
+      memory_bytes: attributes.resources?.memory_bytes || 0,
+      disk_bytes: attributes.resources?.disk_bytes || 0,
+      cpu_absolute: attributes.resources?.cpu_absolute || 0,
+      network_rx_bytes: attributes.resources?.network_rx_bytes || 0,
+      network_tx_bytes: attributes.resources?.network_tx_bytes || 0,
+      uptime: attributes.resources?.uptime || 0,
+      state: attributes.current_state || 'unknown',
+    }
+  } catch (error: any) {
+    clearTimeout(timeoutId)
+    
+    if (error.name === 'AbortError') {
+      console.log(`[Pterodactyl] Resources request timeout for ${uuid}`)
+    } else {
+      console.error(`[Pterodactyl] Error getting resources for ${uuid}:`, error.message)
+    }
+    
+    return null
+  }
+}
+
 
 export async function createServer(params: {
   name: string

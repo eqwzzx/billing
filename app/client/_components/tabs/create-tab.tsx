@@ -190,13 +190,55 @@ export function CreateTab({ user, plans, vdsPlans, nodes, loadingPlans, loadingV
     : selectedGamePlanData?.egg ? [selectedGamePlanData.egg] : []
 
   const availableNodes = nodes.filter(node => {
+    // Безопасное получение nodeType с дефолтным значением
     const nodeType = node.nodeType || "MINECRAFT"
-    if (selectedCategory === "MINECRAFT" && nodeType !== "MINECRAFT") return false
-    if (selectedCategory === "CODING" && nodeType !== "CODING") return false
-    if (selectedGamePlanData?.isFree) return node.isFree && node.hasAllocations !== false
-    if (selectedGamePlanData && !selectedGamePlanData.isFree) return !node.isFree
+    
+    // Если нода помечена как ALL - она подходит для любой категории
+    if (nodeType === "ALL") {
+      console.log(`[CreateTab] Node ${node.name} matches: nodeType=ALL (universal)`)
+      // Дополнительная фильтрация для бесплатных/платных
+      if (selectedGamePlanData?.isFree) {
+        return node.isFree && node.hasAllocations !== false
+      }
+      if (selectedGamePlanData && !selectedGamePlanData.isFree) {
+        return !node.isFree
+      }
+      return false
+    }
+    
+    // Фильтрация по категории
+    if (selectedCategory === "MINECRAFT" && nodeType !== "MINECRAFT") {
+      console.log(`[CreateTab] Node ${node.name} filtered out: expected MINECRAFT, got ${nodeType}`)
+      return false
+    }
+    if (selectedCategory === "CODING" && nodeType !== "CODING") {
+      console.log(`[CreateTab] Node ${node.name} filtered out: expected CODING, got ${nodeType}`)
+      return false
+    }
+    
+    // Фильтрация бесплатных нод
+    if (selectedGamePlanData?.isFree) {
+      const matches = node.isFree && node.hasAllocations !== false
+      if (!matches) {
+        console.log(`[CreateTab] Node ${node.name} filtered out: free plan requires free node with allocations`)
+      }
+      return matches
+    }
+    
+    // Фильтрация платных нод
+    if (selectedGamePlanData && !selectedGamePlanData.isFree) {
+      const matches = !node.isFree
+      if (!matches) {
+        console.log(`[CreateTab] Node ${node.name} filtered out: paid plan requires paid node`)
+      }
+      return matches
+    }
+    
+    console.log(`[CreateTab] Node ${node.name} filtered out: no plan selected`)
     return false
   })
+  
+  console.log('[CreateTab] Available nodes after filter:', availableNodes.map(n => ({ name: n.name, type: n.nodeType })))
 
   const checkPromo = async () => {
     if (!promoCode.trim() || !basePrice) return
