@@ -486,7 +486,7 @@ export function Pricing() {
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p className="text-sm">Только для первого заказа</p>
+                                <p className="text-sm">Только на первый заказ</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
