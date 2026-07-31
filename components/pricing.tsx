@@ -5,6 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Server, Cloud, Cpu, HardDrive, Database, Wifi, Code, Shield, RussianRuble, DollarSign, Euro, Lock, Zap, Flame, ArrowRight, LogIn } from "lucide-react"
 import { publicGamePlans } from "@/lib/public-plans"
 import { formatPrice as formatCurrency, type Currency as CurrencyType, updateCurrencyRates } from "@/lib/currency"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 
 const vdsPlansPromo = [
@@ -464,18 +470,21 @@ export function Pricing() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
-                          <Flame className="size-3 sm:size-3.5 text-orange-500" />
-                          <span className="text-[10px] sm:text-xs font-bold text-orange-500">
-                            -{formatPriceWithDiscount(plan).discount}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-1.5">
-                        <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] text-muted-foreground/60 uppercase tracking-wider">
-                          <Zap className="size-2.5 sm:size-3" />
-                          Только для первого заказа
-                        </span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 cursor-help">
+                                <Flame className="size-3 sm:size-3.5 text-orange-500" />
+                                <span className="text-[10px] sm:text-xs font-bold text-orange-500">
+                                  -{formatPriceWithDiscount(plan).discount}%
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">Только для первого заказа</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </>
                   ) : (

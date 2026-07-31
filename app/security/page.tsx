@@ -278,8 +278,18 @@ export default function SecurityPage() {
       </Card>
 
       {/* Диалог настройки 2FA */}
-      <Dialog open={showSetup} onOpenChange={setShowSetup}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showSetup} onOpenChange={(open) => {
+        setShowSetup(open)
+        if (!open) {
+          // Очищаем все состояния при закрытии
+          setSetupStep('qr')
+          setVerifyCode('')
+          setQrCode('')
+          setSecret('')
+          setBackupCodes([])
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Настройка двухфакторной аутентификации</DialogTitle>
             <DialogDescription>
@@ -290,80 +300,160 @@ export default function SecurityPage() {
           </DialogHeader>
 
           {setupStep === 'qr' && (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                {qrCode && (
-                  <Image src={qrCode} alt="QR Code" width={200} height={200} className="border rounded-lg" />
-                )}
-              </div>
-              <div>
-                <Label>Или введите код вручную:</Label>
-                <Input value={secret} readOnly className="font-mono text-xs" />
-              </div>
+            <div className="space-y-6 py-4">
               <Alert>
-                <AlertDescription className="text-xs">
-                  Скачайте Google Authenticator или Authy на свой телефон и отсканируйте этот QR код
+                <Smartphone className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Шаг 1:</strong> Скачайте приложение Google Authenticator, Authy или любое другое TOTP приложение на свой телефон
                 </AlertDescription>
               </Alert>
-              <Button onClick={() => setSetupStep('verify')} className="w-full">
-                Далее
+              
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-center">Шаг 2: Отсканируйте QR код</p>
+                <div className="flex justify-center p-6 bg-white rounded-lg">
+                  {qrCode && (
+                    <Image 
+                      src={qrCode} 
+                      alt="QR Code" 
+                      width={280} 
+                      height={280} 
+                      className="border-4 border-gray-200 rounded-lg shadow-sm" 
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Или введите код вручную:</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={secret} 
+                    readOnly 
+                    className="font-mono text-sm flex-1" 
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(secret)
+                      toast.success('Секретный код скопирован')
+                    }}
+                  >
+                    Копировать
+                  </Button>
+                </div>
+              </div>
+
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Шаг 3:</strong> После сканирования QR кода, нажмите кнопку "Далее" чтобы подтвердить настройку
+                </AlertDescription>
+              </Alert>
+              
+              <Button onClick={() => setSetupStep('verify')} className="w-full" size="lg">
+                Далее - Подтвердить настройку
               </Button>
             </div>
           )}
 
           {setupStep === 'verify' && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="verify-code">Код подтверждения</Label>
+            <div className="space-y-6 py-4">
+              <Alert>
+                <Smartphone className="h-4 w-4" />
+                <AlertDescription>
+                  Откройте приложение аутентификации на телефоне и введите 6-значный код, который вы видите для Fluxor
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="verify-code" className="text-base font-medium">Код подтверждения</Label>
                 <Input
                   id="verify-code"
                   type="text"
+                  inputMode="numeric"
                   maxLength={6}
                   value={verifyCode}
                   onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="123456"
-                  className="text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  className="text-center text-3xl tracking-[0.5em] font-bold h-16"
+                  autoFocus
                 />
+                <p className="text-xs text-muted-foreground text-center">
+                  Введите 6-значный код из приложения
+                </p>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={() => setSetupStep('qr')} variant="outline" className="w-full">
-                  Назад
+
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => {
+                    setSetupStep('qr')
+                    setVerifyCode('')
+                  }} 
+                  variant="outline" 
+                  className="flex-1"
+                  size="lg"
+                >
+                  Назад к QR коду
                 </Button>
-                <Button onClick={handleVerifyAndEnable} className="w-full">
-                  Подтвердить
+                <Button 
+                  onClick={handleVerifyAndEnable} 
+                  className="flex-1"
+                  size="lg"
+                  disabled={verifyCode.length !== 6}
+                >
+                  Подтвердить и включить
                 </Button>
               </div>
             </div>
           )}
 
           {setupStep === 'backup' && (
-            <div className="space-y-4">
+            <div className="space-y-6 py-4">
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Сохраните эти коды в безопасном месте! Они понадобятся, если вы потеряете телефон.
+                  <strong>Очень важно!</strong> Сохраните эти резервные коды в безопасном месте. 
+                  Они понадобятся, если вы потеряете доступ к телефону или приложению аутентификации.
                 </AlertDescription>
               </Alert>
-              <div className="bg-muted p-4 rounded-lg">
-                <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                  {backupCodes.map((code, i) => (
-                    <div key={i} className="text-center py-1">
-                      {code}
-                    </div>
-                  ))}
+
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Ваши резервные коды:</Label>
+                <div className="bg-muted/50 p-6 rounded-lg border-2 border-border">
+                  <div className="grid grid-cols-2 gap-3 font-mono text-base">
+                    {backupCodes.map((code, i) => (
+                      <div 
+                        key={i} 
+                        className="text-center py-2 px-3 bg-background rounded border font-semibold"
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={downloadBackupCodes} variant="outline" className="flex-1">
+
+              <div className="flex gap-3">
+                <Button onClick={downloadBackupCodes} variant="outline" className="flex-1" size="lg">
                   <Download className="h-4 w-4 mr-2" />
-                  Скачать
+                  Скачать коды
                 </Button>
-                <Button onClick={copyBackupCodes} variant="outline" className="flex-1">
-                  Копировать
+                <Button onClick={copyBackupCodes} variant="outline" className="flex-1" size="lg">
+                  Копировать все
                 </Button>
               </div>
-              <Button onClick={handleCompleteSetup} className="w-full">
-                Готово
+
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  Каждый код можно использовать только один раз. Храните их в безопасном месте, 
+                  например в менеджере паролей.
+                </AlertDescription>
+              </Alert>
+
+              <Button onClick={handleCompleteSetup} className="w-full" size="lg">
+                Завершить настройку
               </Button>
             </div>
           )}
@@ -371,39 +461,63 @@ export default function SecurityPage() {
       </Dialog>
 
       {/* Диалог отключения 2FA */}
-      <Dialog open={showDisable} onOpenChange={setShowDisable}>
-        <DialogContent>
+      <Dialog open={showDisable} onOpenChange={(open) => {
+        setShowDisable(open)
+        if (!open) setVerifyCode('')
+      }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Отключить двухфакторную аутентификацию</DialogTitle>
             <DialogDescription>
-              Введите код из приложения для подтверждения
+              Для отключения 2FA введите код из приложения аутентификации
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="disable-code">Код подтверждения</Label>
-              <Input
-                id="disable-code"
-                type="text"
-                maxLength={6}
-                value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                className="text-center text-2xl tracking-widest"
-              />
-            </div>
+          <div className="space-y-6 py-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                После отключения ваш аккаунт будет менее защищен
+                <strong>Внимание!</strong> После отключения ваш аккаунт будет менее защищен. 
+                Мы настоятельно рекомендуем оставить 2FA включенной.
               </AlertDescription>
             </Alert>
+
+            <div className="space-y-2">
+              <Label htmlFor="disable-code" className="text-base font-medium">Код подтверждения</Label>
+              <Input
+                id="disable-code"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                className="text-center text-3xl tracking-[0.5em] font-bold h-16"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                Введите 6-значный код из приложения Google Authenticator
+              </p>
+            </div>
           </div>
-          <DialogFooter>
-            <Button onClick={() => setShowDisable(false)} variant="outline">
+          <DialogFooter className="gap-2">
+            <Button 
+              onClick={() => {
+                setShowDisable(false)
+                setVerifyCode('')
+              }} 
+              variant="outline"
+              size="lg"
+              className="flex-1"
+            >
               Отмена
             </Button>
-            <Button onClick={handleDisable} variant="destructive">
+            <Button 
+              onClick={handleDisable} 
+              variant="destructive"
+              size="lg"
+              className="flex-1"
+              disabled={verifyCode.length !== 6}
+            >
               Отключить 2FA
             </Button>
           </DialogFooter>
@@ -411,75 +525,128 @@ export default function SecurityPage() {
       </Dialog>
 
       {/* Диалог обновления backup кодов */}
-      <Dialog open={showRegenerate} onOpenChange={setShowRegenerate}>
-        <DialogContent>
+      <Dialog open={showRegenerate} onOpenChange={(open) => {
+        setShowRegenerate(open)
+        if (!open) {
+          setBackupCodes([])
+          setVerifyCode('')
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Обновить резервные коды</DialogTitle>
             <DialogDescription>
               {backupCodes.length === 0
-                ? 'Введите код из приложения для подтверждения'
-                : 'Новые резервные коды сгенерированы'}
+                ? 'Введите код из приложения аутентификации для подтверждения'
+                : 'Новые резервные коды успешно сгенерированы'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6 py-4">
             {backupCodes.length === 0 ? (
               <>
-                <div>
-                  <Label htmlFor="regen-code">Код подтверждения</Label>
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Важно:</strong> Старые резервные коды перестанут работать после генерации новых. 
+                    Убедитесь, что сохранили новые коды в безопасном месте.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="regen-code" className="text-base font-medium">Код подтверждения</Label>
                   <Input
                     id="regen-code"
                     type="text"
+                    inputMode="numeric"
                     maxLength={6}
                     value={verifyCode}
                     onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="123456"
-                    className="text-center text-2xl tracking-widest"
+                    placeholder="000000"
+                    className="text-center text-3xl tracking-[0.5em] font-bold h-16"
+                    autoFocus
                   />
+                  <p className="text-xs text-muted-foreground text-center">
+                    Введите 6-значный код из приложения Google Authenticator
+                  </p>
                 </div>
-                <Alert>
-                  <AlertDescription>
-                    Старые резервные коды перестанут работать после генерации новых
-                  </AlertDescription>
-                </Alert>
               </>
             ) : (
               <>
-                <div className="bg-muted p-4 rounded-lg">
-                  <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                    {backupCodes.map((code, i) => (
-                      <div key={i} className="text-center py-1">
-                        {code}
-                      </div>
-                    ))}
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <AlertDescription>
+                    <strong>Успешно!</strong> Резервные коды обновлены. Сохраните их в безопасном месте.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Ваши новые резервные коды:</Label>
+                  <div className="bg-muted/50 p-6 rounded-lg border-2 border-border">
+                    <div className="grid grid-cols-2 gap-3 font-mono text-base">
+                      {backupCodes.map((code, i) => (
+                        <div 
+                          key={i} 
+                          className="text-center py-2 px-3 bg-background rounded border font-semibold"
+                        >
+                          {code}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={downloadBackupCodes} variant="outline" className="flex-1">
+
+                <div className="flex gap-3">
+                  <Button onClick={downloadBackupCodes} variant="outline" className="flex-1" size="lg">
                     <Download className="h-4 w-4 mr-2" />
-                    Скачать
+                    Скачать коды
                   </Button>
-                  <Button onClick={copyBackupCodes} variant="outline" className="flex-1">
-                    Копировать
+                  <Button onClick={copyBackupCodes} variant="outline" className="flex-1" size="lg">
+                    Копировать все
                   </Button>
                 </div>
+
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Не забудьте сохранить!</strong> Старые коды больше не работают. 
+                    Каждый новый код можно использовать только один раз.
+                  </AlertDescription>
+                </Alert>
               </>
             )}
           </div>
           <DialogFooter>
             {backupCodes.length === 0 ? (
               <>
-                <Button onClick={() => setShowRegenerate(false)} variant="outline">
+                <Button 
+                  onClick={() => {
+                    setShowRegenerate(false)
+                    setVerifyCode('')
+                  }} 
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                >
                   Отмена
                 </Button>
-                <Button onClick={handleRegenerateBackup}>Обновить</Button>
+                <Button 
+                  onClick={handleRegenerateBackup}
+                  size="lg"
+                  className="flex-1"
+                  disabled={verifyCode.length !== 6}
+                >
+                  Обновить коды
+                </Button>
               </>
             ) : (
               <Button
                 onClick={() => {
                   setShowRegenerate(false)
                   setBackupCodes([])
+                  setVerifyCode('')
                 }}
                 className="w-full"
+                size="lg"
               >
                 Готово
               </Button>
