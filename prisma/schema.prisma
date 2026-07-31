@@ -449,7 +449,6 @@ enum pterodactylnode_nodeType {
   VDS
   ALL
 }
-}
 
 enum vds_server_status {
   UNPAID
