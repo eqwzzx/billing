@@ -776,8 +776,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             currentBalance={user.balance}
           />
         )}
-          />
-        )}
 
         {show2FAModal && pending2FAAction && (
           <TwoFactorPromptModal

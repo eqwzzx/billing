@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
-import axios from 'axios'
 
 const PTERODACTYL_URL = process.env.PTERODACTYL_URL
 const PTERODACTYL_API_KEY = process.env.PTERODACTYL_API_KEY
@@ -54,7 +53,7 @@ export async function POST(
     }
 
     // Получаем данные из Pterodactyl
-    const response = await axios.get<PterodactylServer>(
+    const response = await fetch(
       `${PTERODACTYL_URL}/api/application/servers/${server.pterodactylId}`,
       {
         headers: {
@@ -65,7 +64,17 @@ export async function POST(
       }
     )
 
-    const pteroServer = response.data.attributes
+    if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json({
+          error: 'Сервер не найден в Pterodactyl'
+        }, { status: 404 })
+      }
+      throw new Error(`Pterodactyl API error: ${response.status}`)
+    }
+
+    const data: PterodactylServer = await response.json()
+    const pteroServer = data.attributes
     
     // Определяем новый статус
     let newStatus = server.status
@@ -106,12 +115,6 @@ export async function POST(
     })
   } catch (error) {
     console.error('[Sync Status] Error:', error)
-    
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return NextResponse.json({
-        error: 'Сервер не найден в Pterodactyl'
-      }, { status: 404 })
-    }
 
     return NextResponse.json({
       error: 'Не удалось синхронизировать статус',

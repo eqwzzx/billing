@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import axios from 'axios'
 
 const PTERODACTYL_URL = process.env.PTERODACTYL_URL
 const PTERODACTYL_API_KEY = process.env.PTERODACTYL_API_KEY
@@ -63,7 +62,7 @@ export async function GET(request: NextRequest) {
 
       try {
         // Получаем данные сервера из Pterodactyl
-        const response = await axios.get<PterodactylServer>(
+        const response = await fetch(
           `${PTERODACTYL_URL}/api/application/servers/${server.pterodactylId}`,
           {
             headers: {
@@ -74,7 +73,12 @@ export async function GET(request: NextRequest) {
           }
         )
 
-        const pteroServer = response.data.attributes
+        if (!response.ok) {
+          throw new Error(`Pterodactyl API error: ${response.status}`)
+        }
+
+        const data: PterodactylServer = await response.json()
+        const pteroServer = data.attributes
         const newStatus = mapPterodactylStatus(pteroServer)
 
         // Обновляем только если статус изменился
