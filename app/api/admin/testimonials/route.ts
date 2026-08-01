@@ -49,8 +49,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Генерируем уникальный ID
+    const id = crypto.randomUUID()
+
     const testimonial = await prisma.testimonials.create({
       data: {
+        id,
         name,
         avatar_url: avatar_url || null,
         game: game || null,

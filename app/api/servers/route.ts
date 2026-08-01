@@ -24,6 +24,9 @@ export async function GET(request: NextRequest) {
     const servers = await prisma.server.findMany({
       where: { 
         userId: user.id,
+        status: {
+          not: 'DELETED'
+        }
       },
       include: {
         plan: { select: { id: true, name: true, ram: true, cpu: true, disk: true, price: true, category: true } },
