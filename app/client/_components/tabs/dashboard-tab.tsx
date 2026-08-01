@@ -404,14 +404,15 @@ export function DashboardTab({ user, servers, vdsServers = [] }: DashboardTabPro
               {resettingPassword ? <Loader2 className="size-4 sm:size-5 text-muted-foreground animate-spin" /> : <KeyRound className="size-4 sm:size-5 text-muted-foreground" />}
               <span className="text-[10px] sm:text-xs font-medium text-foreground">Пароль</span>
             </button>
-            <button
+            {/* VDS кнопка скрыта до запуска */}
+            {/* <button
               onClick={handleOpenVdsPanel}
               disabled={openingVdsPanel}
               className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2 p-2.5 sm:p-3 rounded-xl bg-muted/20 hover:bg-muted/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50"
             >
               {openingVdsPanel ? <Loader2 className="size-4 sm:size-5 text-muted-foreground animate-spin" /> : <Monitor className="size-4 sm:size-5 text-muted-foreground" />}
               <span className="text-[10px] sm:text-xs font-medium text-foreground">VDS</span>
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

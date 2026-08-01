@@ -131,8 +131,48 @@ export async function trackMarketingEvent(params: {
   userAgent?: string
 }) {
   try {
-    const utmParams = await getUTMFromCookies()
-    const sessionId = await getOrCreateSessionId()
+    // Пытаемся получить UTM данные из cookies, но не блокируем если не получается
+    let utmParams: UTMParams = {}
+    let sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    try {
+      utmParams = await getUTMFromCookies()
+      sessionId = await getOrCreateSessionId()
+    } catch (cookieError) {
+      // Cookies недоступны (например, в webhook или другом асинхронном контексте)
+      console.log('[Marketing] Cookies unavailable, using fallback sessionId')
+      
+      // Пытаемся получить UTM данные из пользователя если userId доступен
+      if (params.userId) {
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: params.userId },
+            select: {
+              utmSource: true,
+              utmMedium: true,
+              utmCampaign: true,
+              utmContent: true,
+              utmTerm: true,
+              referralLinkId: true,
+            },
+          })
+          
+          if (user) {
+            utmParams = {
+              utm_source: user.utmSource || undefined,
+              utm_medium: user.utmMedium || undefined,
+              utm_campaign: user.utmCampaign || undefined,
+              utm_content: user.utmContent || undefined,
+              utm_term: user.utmTerm || undefined,
+              ref: user.referralLinkId || undefined,
+            }
+            console.log('[Marketing] Using UTM data from user profile')
+          }
+        } catch (userError) {
+          console.log('[Marketing] Could not fetch user UTM data:', userError)
+        }
+      }
+    }
     
     await prisma.marketingEvent.create({
       data: {

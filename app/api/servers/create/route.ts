@@ -634,12 +634,17 @@ export async function POST(request: NextRequest) {
     await adminLogger.serverCreate(userId, server.id, name, plan.name)
 
     // Tracking маркетингового события SERVER_CREATE
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    
     await trackMarketingEvent({
       eventType: 'SERVER_CREATE',
       userId,
       serverId: server.id,
       planId: plan.id,
       amount: totalPrice,
+      ipAddress: clientIp,
+      userAgent,
       metadata: {
         serverName: name,
         planName: plan.name,

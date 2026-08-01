@@ -106,12 +106,17 @@ export async function POST(request: NextRequest) {
     })
 
     // Tracking маркетингового события SERVER_RENEW
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+    
     await trackMarketingEvent({
       eventType: 'SERVER_RENEW',
       userId: user.id,
       serverId: server.id,
       planId: server.plan.id,
       amount: renewalCost,
+      ipAddress: clientIp,
+      userAgent,
       metadata: {
         serverName: server.name,
         planName: server.plan.name,
