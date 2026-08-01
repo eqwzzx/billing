@@ -8,7 +8,7 @@ export async function GET() {
       prisma.server.count({
         where: {
           status: {
-            in: ["ACTIVE", "INSTALLING", "PENDING"]
+            not: "DELETED" // Считаем все серверы кроме удалённых
           }
         }
       }),
