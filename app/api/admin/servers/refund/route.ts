@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminOrError } from "@/lib/auth-admin"
 import { prisma } from "@/lib/db"
-import { deletePterodactylServer } from "@/lib/pterodactyl"
+import { deleteServer } from "@/lib/pterodactyl"
 
 interface RefundCalculation {
   totalPaid: number
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
     // 4. Удаляем сервер из Pterodactyl (не блокирующая операция)
     if (server.pterodactylId && !forceDelete) {
       try {
-        await deletePterodactylServer(server.pterodactylId)
+        await deleteServer(server.pterodactylId, false)
         console.log(`[Refund] Deleted Pterodactyl server ${server.pterodactylId}`)
       } catch (error) {
         console.error(`[Refund] Failed to delete Pterodactyl server ${server.pterodactylId}:`, error)
