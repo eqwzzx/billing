@@ -18,14 +18,26 @@ export const calculateRefund = (server: ServerData) => {
   if (!server.expiresAt) return 0
   const now = new Date()
   const expires = new Date(server.expiresAt)
+  const created = new Date(server.createdAt)
+  
   const msRemaining = expires.getTime() - now.getTime()
   if (msRemaining <= 0) return 0
   
+  // Рассчитываем общий оплаченный период
+  const totalPaidMs = expires.getTime() - created.getTime()
+  const totalPaidDays = totalPaidMs / (1000 * 60 * 60 * 24)
+  
+  // Оставшееся время
   const daysRemaining = msRemaining / (1000 * 60 * 60 * 24)
+  
   // Используем paidAmount если есть, иначе plan.price + node.priceModifier
   const actualPaidPrice = server.paidAmount ?? (server.plan.price + (server.node?.priceModifier ?? 0))
-  const dailyRate = actualPaidPrice / 30
-  return Math.floor(daysRemaining * dailyRate)
+  
+  // Процент оставшегося времени от общего оплаченного периода
+  const refundPercentage = daysRemaining / totalPaidDays
+  const refundAmount = actualPaidPrice * refundPercentage
+  
+  return Math.floor(refundAmount)
 }
 
 export const formatTimeRemaining = (server: ServerData) => {
