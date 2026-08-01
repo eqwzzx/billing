@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { 
   Settings, Users, Server, CreditCard, Database, 
   Home, Search, Activity, Cloud, Mail, LogOut, FileText,
-  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp, Wallet, Bell
+  HardDrive, Globe, Box, Menu, X, Link2, TrendingUp, Wallet, Bell, MessageSquare
 } from "lucide-react"
 import { useState } from "react"
 
@@ -96,6 +96,15 @@ export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQue
             >
               <Server className="size-4" />
               <span className="hidden xl:block">Категории</span>
+            </Link>
+            
+            {/* Отзывы как отдельная кнопка-ссылка */}
+            <Link
+              href="/admin/testimonials"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <MessageSquare className="size-4" />
+              <span className="hidden xl:block">Отзывы</span>
             </Link>
             
             {/* Настройки как отдельная кнопка */}
@@ -214,6 +223,16 @@ export function AdminHeader({ activeTab, setActiveTab, searchQuery, setSearchQue
               >
                 <Server className="size-4" />
                 <span>Категории</span>
+              </Link>
+              
+              {/* Отзывы в мобильном меню */}
+              <Link
+                href="/admin/testimonials"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <MessageSquare className="size-4" />
+                <span>Отзывы</span>
               </Link>
               
               {/* Настройки в мобильном меню */}

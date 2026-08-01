@@ -1441,7 +1441,20 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
           <div className="space-y-3">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Действия</p>
             <div className="space-y-2">
-              {server.pterodactylIdentifier && (
+              {!server.pterodactylIdentifier ? (
+                <Link
+                  href="/client/settings"
+                  className="w-full flex flex-col items-center justify-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 text-sm font-medium text-amber-500 hover:bg-amber-500/20 transition-colors duration-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="size-4" />
+                    <span>Создать аккаунт Pterodactyl</span>
+                  </div>
+                  <p className="text-xs text-amber-500/70 text-center">
+                    У вас нет аккаунта в панели управления. Создайте его в настройках.
+                  </p>
+                </Link>
+              ) : (
                 <a 
                   href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions'}/server/${server.pterodactylIdentifier}`}
                   target="_blank"

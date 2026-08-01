@@ -890,51 +890,133 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="flex items-center gap-1 rounded-2xl border border-border bg-background/80 px-2 py-2 shadow-lg backdrop-blur-md">
-          <Link href="/" className="flex items-center gap-2 px-3 hover:scale-105 transition-transform duration-200">
-            <Image src="/logo.svg" alt="Fluxor" width={6} height={6} className="size-6" />
-            <span className="font-heading font-bold text-foreground hidden sm:block">Fluxor</span>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar - фиксированное боковое меню */}
+      <aside className="fixed left-0 top-0 h-screen w-64 border-r border-border bg-card/50 backdrop-blur-md z-50 flex flex-col">
+        {/* Logo */}
+        <div className="p-4 border-b border-border">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <Image src="/logo.svg" alt="Fluxor" width={32} height={32} className="size-8 brightness-0 dark:brightness-100" />
+            <span className="font-heading font-bold text-xl text-foreground">Fluxor Admin</span>
           </Link>
-          
-          <div className="h-6 w-px bg-border mx-1" />
-          
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm transition-all duration-200 hover:scale-[1.02] ${
-                activeTab === item.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
+                activeTab === item.id
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
-              <item.icon className="size-4" />
-              <span className="hidden md:block">{item.label}</span>
+              <item.icon className="size-5 flex-shrink-0" />
+              <span className="truncate">{item.label}</span>
             </button>
           ))}
-          
-          <div className="h-6 w-px bg-border mx-1" />
-          
-          <div className="relative">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Поиск..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-32 md:w-48 pl-9 pr-3 py-2 rounded-xl bg-accent/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:bg-accent transition-all duration-200"
-            />
+
+          {/* Дополнительные ссылки */}
+          <div className="pt-4 mt-4 border-t border-border space-y-1">
+            <Link
+              href="/admin/marketing"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <TrendingUp className="size-5 flex-shrink-0" />
+              <span className="truncate">Маркетинг</span>
+            </Link>
+
+            <Link
+              href="/admin/alerts"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <AlertCircle className="size-5 flex-shrink-0" />
+              <span className="truncate">Алерты</span>
+            </Link>
+
+            <Link
+              href="/admin/categories"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Server className="size-5 flex-shrink-0" />
+              <span className="truncate">Категории</span>
+            </Link>
+
+            <Link
+              href="/admin/testimonials"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Heart className="size-5 flex-shrink-0" />
+              <span className="truncate">Отзывы</span>
+            </Link>
+
+            <Link
+              href="/admin/referrals"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Link2 className="size-5 flex-shrink-0" />
+              <span className="truncate">Реферальные ссылки</span>
+            </Link>
           </div>
-          
-          <ThemeToggle />
-          
-          <Link href="/client" className="size-9 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-            <LogOut className="size-4" />
+        </nav>
+
+        {/* Bottom section */}
+        <div className="p-4 border-t border-border space-y-2">
+          <div className="flex items-center justify-between px-3">
+            <span className="text-sm text-muted-foreground">Тема</span>
+            <ThemeToggle />
+          </div>
+          <Link
+            href="/client"
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
+          >
+            <LogOut className="size-5 flex-shrink-0" />
+            <span className="truncate">Выйти</span>
           </Link>
         </div>
-      </nav>
+      </aside>
 
-      <main className="max-w-7xl mx-auto px-4 pt-24 pb-12">
+      {/* Main content - сдвинут вправо на ширину sidebar */}
+      <main className="flex-1 ml-64">
+        {/* Top bar */}
+        <div className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                {navItems.find(item => item.id === activeTab)?.label || "Админ-панель"}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Управление системой Fluxor
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Поиск..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 pl-9 pr-3 py-2 rounded-xl bg-accent/50 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <button
+                onClick={refreshAllData}
+                className="size-10 rounded-xl bg-accent flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                title="Обновить данные"
+              >
+                <RefreshCw className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
 
         {activeTab === "dashboard" && (
           <div className="space-y-6">
@@ -2696,8 +2778,8 @@ export default function AdminPage() {
             onLoadPromos={loadPromos}
           />
         )}
+        </div>
       </main>
-
 
       {(editingPlan || showNewPlan) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

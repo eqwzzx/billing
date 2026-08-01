@@ -198,6 +198,9 @@ model Server {
   paidAmount            Float?
   startupCommand        String?          @db.Text
   startupPreset         String?
+  refundedAmount        Float?           // Сумма возврата при удалении
+  refundedAt            DateTime?        // Дата возврата средств
+  deletionReason        String?          @db.Text // Причина удаления
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
   egg                   PterodactylEgg?  @relation(fields: [eggId], references: [id], map: "Server_eggId_fkey")
@@ -209,6 +212,7 @@ model Server {
   @@index([nodeId], map: "Server_nodeId_fkey")
   @@index([planId], map: "Server_planId_fkey")
   @@index([userId], map: "Server_userId_fkey")
+  @@index([refundedAt], map: "idx_server_refunded")
   @@map("Server")
 }
 
@@ -314,6 +318,7 @@ model User {
   banHistory           BanHistory[]       @relation("UserBans")
   appeals              BanAppeal[]
   marketingEvents      MarketingEvent[]
+  adminActions         AdminAction[]      @relation("AdminActions")
 
   @@index([utmSource])
   @@index([utmCampaign])
@@ -893,4 +898,41 @@ enum marketing_event_type {
   PAYMENT_SUCCESS // Успешная оплата
   SERVER_CREATE  // Создание сервера
   SERVER_RENEW   // Продление сервера
+}
+
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String // Тип действия (DELETE_SERVER_WITH_REFUND, BAN_USER, etc.)
+  targetType String // Тип цели (SERVER, USER, VDS_SERVER, etc.)
+  targetId   String // ID целевого объекта
+  reason     String?  @db.Text // Причина действия
+  details    String?  @db.Text // Дополнительные детали в JSON
+  createdAt  DateTime @default(now())
+  
+  admin User @relation("AdminActions", fields: [adminId], references: [id], onDelete: Cascade)
+  
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("AdminAction")
+}
+
+model Testimonials {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(255)
+  avatar_url    String?  @db.VarChar(500)
+  game          String?  @db.VarChar(255)
+  price         String?  @db.VarChar(100)
+  rating        Int
+  text          String   @db.Text
+  is_active     Boolean  @default(true)
+  display_order Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([is_active])
+  @@index([display_order, created_at])
+  @@map("testimonials")
 }
