@@ -349,11 +349,6 @@ export function OtherServicesSection({ userBalance, onBalanceUpdate, onServicesL
                             Продлить ({service.paidAmount} ₽)
                           </button>
                         )}
-                        {service.status === 'ACTIVE' && service.paidAmount && userBalance < service.paidAmount && (
-                          <p className="text-xs text-amber-500 text-center">
-                            Недостаточно средств для продления
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -482,11 +477,6 @@ export function OtherServicesSection({ userBalance, onBalanceUpdate, onServicesL
                             )}
                             Продлить ({service.paidAmount} ₽)
                           </button>
-                        )}
-                        {service.status === 'ACTIVE' && service.paidAmount && userBalance < service.paidAmount && (
-                          <p className="text-xs text-amber-500 text-center">
-                            Недостаточно средств для продления
-                          </p>
                         )}
                       </div>
                     </div>
@@ -667,11 +657,6 @@ export function OtherServicesSection({ userBalance, onBalanceUpdate, onServicesL
                             )}
                             Продлить ({service.paidAmount} ₽)
                           </button>
-                        )}
-                        {service.status === 'ACTIVE' && service.paidAmount && userBalance < service.paidAmount && (
-                          <p className="text-xs text-amber-500 text-center">
-                            Недостаточно средств для продления
-                          </p>
                         )}
                       </div>
                     </div>

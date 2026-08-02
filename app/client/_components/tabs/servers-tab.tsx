@@ -1510,11 +1510,6 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                   Продлить ({server.plan.price + (server.node?.priceModifier ?? 0)} ₽)
                 </button>
               )}
-              {!server.plan.isFree && user.balance < (server.plan.price + (server.node?.priceModifier ?? 0)) && user.pterodactylId && (
-                <p className="text-xs text-amber-500 text-center">
-                  Недостаточно средств для продления
-                </p>
-              )}
               <button
                 onClick={onDeleteClick}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 py-2 text-sm font-medium text-red-500 hover:bg-red-500/20 transition-colors duration-200"
