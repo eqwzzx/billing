@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
 
 interface NodeStatus {
@@ -16,13 +17,36 @@ interface NodeStatus {
 }
 
 export default function NodesStatusPage() {
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadStatus()
-  }, [])
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        const data = await res.json()
+        if (data.user?.role !== 'ADMIN') {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        setIsAuthorized(true)
+        loadStatus()
+      } catch {
+        setIsAuthorized(false)
+        router.push('/client')
+      }
+    }
+    checkAuth()
+  }, [router])
 
   const loadStatus = async () => {
     setLoading(true)
@@ -39,6 +63,21 @@ export default function NodesStatusPage() {
       setError('Ошибка сети')
     }
     setLoading(false)
+  }
+
+  if (isAuthorized === null || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Проверка доступа...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return null
   }
 
   if (loading) {

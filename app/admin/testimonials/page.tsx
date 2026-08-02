@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Star, Plus, Pencil, Trash2, Eye, EyeOff, Save, X } from "lucide-react"
 import Image from "next/image"
@@ -20,6 +21,8 @@ interface Testimonial {
 }
 
 export default function TestimonialsAdminPage() {
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -36,8 +39,29 @@ export default function TestimonialsAdminPage() {
   })
 
   useEffect(() => {
-    fetchTestimonials()
-  }, [])
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        const data = await res.json()
+        if (data.user?.role !== 'ADMIN') {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        setIsAuthorized(true)
+        fetchTestimonials()
+      } catch {
+        setIsAuthorized(false)
+        router.push('/client')
+      }
+    }
+    checkAuth()
+  }, [router])
 
   const fetchTestimonials = async () => {
     try {
@@ -138,6 +162,21 @@ export default function TestimonialsAdminPage() {
     } catch (error) {
       console.error("Error toggling active status:", error)
     }
+  }
+
+  if (isAuthorized === null || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Проверка доступа...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return null
   }
 
   if (loading) {

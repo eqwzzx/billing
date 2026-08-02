@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Bell, Plus, Edit, Trash2, Eye, EyeOff, AlertTriangle, Info, X, ArrowLeft } from "lucide-react"
@@ -22,6 +23,8 @@ interface Alert {
 }
 
 export default function AlertsPage() {
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -38,8 +41,29 @@ export default function AlertsPage() {
   })
 
   useEffect(() => {
-    loadAlerts()
-  }, [])
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        const data = await res.json()
+        if (data.user?.role !== 'ADMIN') {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        setIsAuthorized(true)
+        loadAlerts()
+      } catch {
+        setIsAuthorized(false)
+        router.push('/client')
+      }
+    }
+    checkAuth()
+  }, [router])
 
   const loadAlerts = async () => {
     setLoading(true)
@@ -152,6 +176,21 @@ export default function AlertsPage() {
     } catch (error) {
       toast.error('Ошибка удаления')
     }
+  }
+
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Проверка доступа...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return null
   }
 
   return (

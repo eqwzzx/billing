@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Settings, Server, Cloud, Code, Eye, EyeOff, Save, AlertTriangle, ArrowLeft } from "lucide-react"
@@ -34,14 +35,37 @@ const categoryColors = {
 }
 
 export default function CategoriesPage() {
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [categories, setCategories] = useState<CategoryVisibility[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [editingMessage, setEditingMessage] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    loadCategories()
-  }, [])
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me')
+        if (!res.ok) {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        const data = await res.json()
+        if (data.user?.role !== 'ADMIN') {
+          setIsAuthorized(false)
+          router.push('/client')
+          return
+        }
+        setIsAuthorized(true)
+        loadCategories()
+      } catch {
+        setIsAuthorized(false)
+        router.push('/client')
+      }
+    }
+    checkAuth()
+  }, [router])
 
   const loadCategories = async () => {
     setLoading(true)
@@ -115,6 +139,21 @@ export default function CategoriesPage() {
     } finally {
       setSaving(null)
     }
+  }
+
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Проверка доступа...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return null
   }
 
   return (
