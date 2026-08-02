@@ -896,7 +896,7 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar - фиксированное боковое меню */}
-      <aside className="fixed right-0 top-0 h-screen w-64 border-l border-border bg-card/50 backdrop-blur-md z-50 flex flex-col">
+      <aside className="fixed left-0 top-0 h-screen w-64 border-r border-border bg-card/50 backdrop-blur-md z-50 flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -990,8 +990,8 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* Main content - сдвинут влево для sidebar справа */}
-      <main className="flex-1 mr-64">
+      {/* Main content - сдвинут вправо для sidebar слева */}
+      <main className="flex-1 ml-64">
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md px-6 py-4">
           <div className="flex items-center justify-between">
