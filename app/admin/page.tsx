@@ -20,13 +20,12 @@ import { AdminLogsTable } from "./_components/admin-logs-table"
 import { ServiceManager } from "./_components/service-manager"
 import { AdminUsersTable } from "./_components/admin-users-table"
 import { AdminPlategaPaymentsTable } from "./_components/admin-platega-payments-table"
-import { CategoriesTab } from "./_components/categories-tab"
 import { AlertsTab } from "./_components/alerts-tab"
 import { TestimonialsTab } from "./_components/testimonials-tab"
 import { MarketingTab } from "./_components/marketing-tab"
 import { ReferralsTab } from "./_components/referrals-tab"
 
-type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "platega-payments" | "settings" | "categories" | "testimonials" | "marketing" | "alerts"
+type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "platega-payments" | "settings" | "testimonials" | "marketing" | "alerts"
 
 interface User {
   id: string
@@ -947,18 +946,6 @@ export default function AdminPage() {
             >
               <AlertCircle className="size-5 flex-shrink-0" />
               <span className="truncate">Алерты</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("categories")}
-              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
-                activeTab === "categories"
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              }`}
-            >
-              <Server className="size-5 flex-shrink-0" />
-              <span className="truncate">Категории</span>
             </button>
 
             <button
@@ -2762,8 +2749,6 @@ export default function AdminPage() {
             onLoadPromos={loadPromos}
           />
         )}
-
-        {activeTab === "categories" && <CategoriesTab />}
 
         {activeTab === "testimonials" && <TestimonialsTab />}
 

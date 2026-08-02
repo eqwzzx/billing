@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
-export type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "referrals" | "platega-payments" | "settings" | "categories" | "testimonials" | "marketing" | "alerts"
+export type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "referrals" | "platega-payments" | "settings" | "testimonials" | "marketing" | "alerts"
 
 interface NavItem {
   id: Tab
