@@ -13,7 +13,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
   return (
-    <aside className="fixed right-0 top-0 h-screen w-64 border-l border-border bg-background/80 backdrop-blur-md z-40 hidden lg:flex flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-64 border-r border-border bg-background/80 backdrop-blur-md z-40 hidden lg:flex flex-col">
       <div className="p-4 border-b border-border">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Fluxor" width={32} height={32} className="size-8 brightness-0 dark:brightness-100" />

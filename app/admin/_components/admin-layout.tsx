@@ -72,7 +72,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Sidebar for larger screens */}
       <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      <main className="max-w-7xl mx-auto px-4 pt-24 pb-12 lg:pr-72">
+      <main className="max-w-7xl mx-auto px-4 pt-24 pb-12 lg:pl-72">
         {children({ 
           activeTab, 
           setActiveTab, 

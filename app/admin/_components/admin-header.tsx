@@ -40,7 +40,6 @@ export const navItems: NavItem[] = [
   { id: "smtp", icon: Mail, label: "SMTP" },
   { id: "logs", icon: FileText, label: "Логи" },
   { id: "referrals", icon: Link2, label: "Реферальные ссылки" },
-  { id: "categories", icon: Server, label: "Категории" },
   { id: "testimonials", icon: MessageSquare, label: "Отзывы" },
   { id: "marketing", icon: TrendingUp, label: "Маркетинг" },
   { id: "alerts", icon: Bell, label: "Оповещения" },
