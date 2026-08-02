@@ -20,8 +20,13 @@ import { AdminLogsTable } from "./_components/admin-logs-table"
 import { ServiceManager } from "./_components/service-manager"
 import { AdminUsersTable } from "./_components/admin-users-table"
 import { AdminPlategaPaymentsTable } from "./_components/admin-platega-payments-table"
+import { CategoriesTab } from "./_components/categories-tab"
+import { AlertsTab } from "./_components/alerts-tab"
+import { TestimonialsTab } from "./_components/testimonials-tab"
+import { MarketingTab } from "./_components/marketing-tab"
+import { ReferralsTab } from "./_components/referrals-tab"
 
-type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "platega-payments" | "settings"
+type Tab = "dashboard" | "users" | "servers" | "plans" | "pterodactyl" | "vmmanager" | "dedicated" | "domains" | "storagebox" | "status" | "smtp" | "logs" | "platega-payments" | "settings" | "categories" | "testimonials" | "marketing" | "alerts"
 
 interface User {
   id: string
@@ -892,7 +897,7 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar - фиксированное боковое меню */}
-      <aside className="fixed left-0 top-0 h-screen w-64 border-r border-border bg-card/50 backdrop-blur-md z-50 flex flex-col">
+      <aside className="fixed right-0 top-0 h-screen w-64 border-l border-border bg-card/50 backdrop-blur-md z-50 flex flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -920,45 +925,65 @@ export default function AdminPage() {
 
           {/* Дополнительные ссылки */}
           <div className="pt-4 mt-4 border-t border-border space-y-1">
-            <Link
-              href="/admin/marketing"
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            <button
+              onClick={() => setActiveTab("marketing")}
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
+                activeTab === "marketing"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
             >
               <TrendingUp className="size-5 flex-shrink-0" />
               <span className="truncate">Маркетинг</span>
-            </Link>
+            </button>
 
-            <Link
-              href="/admin/alerts"
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            <button
+              onClick={() => setActiveTab("alerts")}
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
+                activeTab === "alerts"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
             >
               <AlertCircle className="size-5 flex-shrink-0" />
               <span className="truncate">Алерты</span>
-            </Link>
+            </button>
 
-            <Link
-              href="/admin/categories"
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            <button
+              onClick={() => setActiveTab("categories")}
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
+                activeTab === "categories"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
             >
               <Server className="size-5 flex-shrink-0" />
               <span className="truncate">Категории</span>
-            </Link>
+            </button>
 
-            <Link
-              href="/admin/testimonials"
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            <button
+              onClick={() => setActiveTab("testimonials")}
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
+                activeTab === "testimonials"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
             >
               <Heart className="size-5 flex-shrink-0" />
               <span className="truncate">Отзывы</span>
-            </Link>
+            </button>
 
-            <Link
-              href="/admin/referrals"
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all text-muted-foreground hover:bg-accent hover:text-foreground"
+            <button
+              onClick={() => setActiveTab("referrals")}
+              className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all ${
+                activeTab === "referrals"
+                  ? "bg-primary text-primary-foreground shadow-lg"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
             >
               <Link2 className="size-5 flex-shrink-0" />
               <span className="truncate">Реферальные ссылки</span>
-            </Link>
+            </button>
           </div>
         </nav>
 
@@ -978,8 +1003,8 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* Main content - сдвинут вправо на ширину sidebar */}
-      <main className="flex-1 ml-64">
+      {/* Main content - сдвинут влево для sidebar справа */}
+      <main className="flex-1 mr-64">
         {/* Top bar */}
         <div className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md px-6 py-4">
           <div className="flex items-center justify-between">
@@ -1220,47 +1245,6 @@ export default function AdminPage() {
                 <p className="text-xl font-bold text-foreground">{servers.filter(s => s.status === 'SUSPENDED').length}</p>
               </div>
             </div>
-
-            {/* Быстрые ссылки для ADMIN и PR_MANAGER */}
-            {(isAuthorized && (users.find(u => u.role === 'ADMIN' || u.role === 'PR_MANAGER'))) && (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Link href="/admin/marketing">
-                  <div className="relative overflow-hidden border border-border/40 bg-card/50 backdrop-blur-sm rounded-xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/5 hover:border-orange-500/50 hover:-translate-y-1 group cursor-pointer">
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-orange-600/10 text-orange-500 group-hover:scale-110 transition-transform">
-                          <TrendingUp className="size-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-heading font-semibold text-lg">Маркетинг</h3>
-                          <p className="text-sm text-muted-foreground">Аналитика и продвижение</p>
-                        </div>
-                      </div>
-                      <ArrowRight className="size-5 text-muted-foreground group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                </Link>
-
-                <Link href="/admin/alerts">
-                  <div className="relative overflow-hidden border border-border/40 bg-card/50 backdrop-blur-sm rounded-xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-500/50 hover:-translate-y-1 group cursor-pointer">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="relative flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-600/10 text-blue-500 group-hover:scale-110 transition-transform">
-                          <AlertCircle className="size-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-heading font-semibold text-lg">Оповещения</h3>
-                          <p className="text-sm text-muted-foreground">Управление алертами</p>
-                        </div>
-                      </div>
-                      <ArrowRight className="size-5 text-muted-foreground group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            )}
 
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
@@ -2778,6 +2762,16 @@ export default function AdminPage() {
             onLoadPromos={loadPromos}
           />
         )}
+
+        {activeTab === "categories" && <CategoriesTab />}
+
+        {activeTab === "testimonials" && <TestimonialsTab />}
+
+        {activeTab === "marketing" && <MarketingTab />}
+
+        {activeTab === "alerts" && <AlertsTab />}
+
+        {activeTab === "referrals" && <ReferralsTab />}
         </div>
       </main>
 

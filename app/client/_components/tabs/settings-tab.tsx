@@ -575,7 +575,7 @@ export function SettingsTab({
           </div>
         </div>
 
-        <div className="lg:col-span-2 rounded-2xl border border-border/50 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+        <div id="pterodactyl" className="lg:col-span-2 rounded-2xl border border-border/50 bg-card/30 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
           <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/30 bg-muted/20">
             <h2 className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
               <div className="size-7 sm:size-8 rounded-lg bg-primary/10 flex items-center justify-center">

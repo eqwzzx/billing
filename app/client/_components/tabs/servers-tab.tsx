@@ -1441,9 +1441,9 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
           <div className="space-y-3">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Действия</p>
             <div className="space-y-2">
-              {!server.pterodactylIdentifier ? (
+              {!user.pterodactylId ? (
                 <Link
-                  href="/client/settings"
+                  href="/client/settings#pterodactyl"
                   className="w-full flex flex-col items-center justify-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-4 text-sm font-medium text-amber-500 hover:bg-amber-500/20 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-2">
@@ -1451,9 +1451,19 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                     <span>Создать аккаунт Pterodactyl</span>
                   </div>
                   <p className="text-xs text-amber-500/70 text-center">
-                    У вас нет аккаунта в панели управления. Создайте его в настройках.
+                    У вас нет аккаунта в панели управления. Создайте его в настройках, чтобы управлять сервером.
                   </p>
                 </Link>
+              ) : !server.pterodactylIdentifier ? (
+                <div className="w-full flex flex-col items-center justify-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 text-sm">
+                  <div className="flex items-center gap-2 text-blue-500">
+                    <Loader2 className="size-4 animate-spin" />
+                    <span className="font-medium">Создание сервера...</span>
+                  </div>
+                  <p className="text-xs text-blue-500/70 text-center">
+                    Сервер создаётся в панели управления. Это займёт несколько минут.
+                  </p>
+                </div>
               ) : (
                 <a 
                   href={`${process.env.NEXT_PUBLIC_PTERODACTYL_URL || 'https://control.fluxor.solutions'}/server/${server.pterodactylIdentifier}`}
@@ -1466,7 +1476,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                 </a>
               )}
               
-              {!isCoding && onStartupClick && (
+              {!isCoding && onStartupClick && user.pterodactylId && (
                 <button
                   onClick={onStartupClick}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 py-2 text-sm font-medium text-blue-500 hover:bg-blue-500/20 transition-colors duration-200"
@@ -1476,7 +1486,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                 </button>
               )}
               
-              {!server.plan.isFree && onUpgradeClick && (
+              {!server.plan.isFree && onUpgradeClick && user.pterodactylId && (
                 <button
                   onClick={onUpgradeClick}
                   className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-500/10 border border-purple-500/20 py-2 text-sm font-medium text-purple-500 hover:bg-purple-500/20 transition-colors duration-200"
@@ -1486,7 +1496,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                 </button>
               )}
               
-              {!server.plan.isFree && onRenewServer && (
+              {!server.plan.isFree && onRenewServer && user.pterodactylId && (
                 <button
                   onClick={() => onRenewServer(server.id)}
                   disabled={isRenewing}
@@ -1500,7 +1510,7 @@ function ServerCard({ server, user, isExpanded, onToggle, onDeleteClick, onRenew
                   Продлить ({server.plan.price + (server.node?.priceModifier ?? 0)} ₽)
                 </button>
               )}
-              {!server.plan.isFree && user.balance < (server.plan.price + (server.node?.priceModifier ?? 0)) && (
+              {!server.plan.isFree && user.balance < (server.plan.price + (server.node?.priceModifier ?? 0)) && user.pterodactylId && (
                 <p className="text-xs text-amber-500 text-center">
                   Недостаточно средств для продления
                 </p>

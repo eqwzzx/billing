@@ -69,10 +69,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         setSearchQuery={setSearchQuery}
       />
       
-      {/* Optional sidebar for larger screens */}
-      {/* <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} /> */}
+      {/* Sidebar for larger screens */}
+      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
-      <main className="max-w-7xl mx-auto px-4 pt-24 pb-12">
+      <main className="max-w-7xl mx-auto px-4 pt-24 pb-12 lg:pr-72">
         {children({ 
           activeTab, 
           setActiveTab, 
