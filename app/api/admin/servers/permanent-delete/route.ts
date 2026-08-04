@@ -67,7 +67,8 @@ function calculateRefund(
 
 /**
  * POST /api/admin/servers/permanent-delete
- * Полностью удаляет сервер из БД с возвратом средств (для уже удаленных серверов)
+ * Полностью удаляет сервер из БД (для уже удаленных серверов).
+ * withRefund=true — с возвратом остатка средств, withRefund=false — без возврата.
  */
 export async function POST(request: NextRequest) {
   const { auth, error } = await getAdminOrError(request)
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { serverId, reason } = body
+    const { serverId, reason, withRefund = true } = body
 
     if (!serverId) {
       return NextResponse.json({ error: "Server ID is required" }, { status: 400 })
@@ -103,9 +104,9 @@ export async function POST(request: NextRequest) {
     // Проверяем, были ли уже возвращены средства
     const alreadyRefunded = server.refundedAmount && server.refundedAmount > 0
 
-    // Рассчитываем возврат только если еще не было возврата
+    // Рассчитываем возврат только если он запрошен и еще не было возврата
     let refundCalc: RefundCalculation | null = null
-    if (!alreadyRefunded) {
+    if (withRefund && !alreadyRefunded) {
       const paidAmount = server.paidAmount || server.plan.price
       refundCalc = calculateRefund(
         paidAmount,
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
       await tx.adminAction.create({
         data: {
           adminId: auth.userId,
-          action: "PERMANENT_DELETE_SERVER",
+          action: withRefund ? "PERMANENT_DELETE_SERVER" : "PERMANENT_DELETE_SERVER_NO_REFUND",
           targetType: "SERVER",
           targetId: server.id,
           reason: reason || null,
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
             userId: server.userId,
             userEmail: server.user.email,
             wasDeleted: true,
+            withRefund,
             refundedBefore: alreadyRefunded,
             previousRefundAmount: server.refundedAmount,
             newRefundAmount: refundCalc?.refundAmount || 0,
@@ -175,11 +177,13 @@ export async function POST(request: NextRequest) {
       return { transaction, refundCalc }
     })
 
-    const refundMessage = refundCalc && refundCalc.refundAmount > 0 
-      ? `. Возвращено ${refundCalc.refundAmount} ₽` 
-      : alreadyRefunded 
-        ? ". Средства уже были возвращены ранее"
-        : ". Возврат не требуется"
+    const refundMessage = !withRefund
+      ? ". Без возврата средств"
+      : refundCalc && refundCalc.refundAmount > 0
+        ? `. Возвращено ${refundCalc.refundAmount} ₽`
+        : alreadyRefunded
+          ? ". Средства уже были возвращены ранее"
+          : ". Возврат не требуется"
 
     console.log(
       `[PermanentDelete] Server ${server.name} (${server.id}) permanently deleted by admin ${auth.email}. ` +
@@ -202,6 +206,7 @@ export async function POST(request: NextRequest) {
           remainingDays: refundCalc.remainingDays,
           totalDays: refundCalc.totalDays,
         } : null,
+        withRefund,
         alreadyRefunded: alreadyRefunded,
         previousRefundAmount: server.refundedAmount,
         transactionId: result.transaction?.id,

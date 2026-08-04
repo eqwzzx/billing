@@ -47,15 +47,70 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    if (source) where.utmSource = source
-    if (campaign) where.utmCampaign = campaign
-
-    // Получаем все события
+    // Получаем все события (фильтр по источнику применяем после восстановления UTM,
+    // иначе события без меток в самом событии не попадут в выборку)
     const events = await prisma.marketingEvent.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: 10000, // Ограничение для производительности
     })
+
+    // События из вебхуков (оплаты) сохранялись без UTM меток, т.к. cookies там недоступны.
+    // Восстанавливаем источник из профиля пользователя, чтобы выручка попадала в свою кампанию.
+    const userIdsToResolve = Array.from(
+      new Set(
+        events
+          .filter(e => !e.utmSource && e.userId)
+          .map(e => e.userId as string)
+      )
+    )
+
+    const userUtmById = new Map<string, {
+      utmSource: string | null
+      utmMedium: string | null
+      utmCampaign: string | null
+    }>()
+
+    if (userIdsToResolve.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIdsToResolve } },
+        select: { id: true, utmSource: true, utmMedium: true, utmCampaign: true },
+      })
+      for (const u of users) {
+        if (u.utmSource) {
+          userUtmById.set(u.id, {
+            utmSource: u.utmSource,
+            utmMedium: u.utmMedium,
+            utmCampaign: u.utmCampaign,
+          })
+        }
+      }
+    }
+
+    const resolveUtm = (event: typeof events[number]) => {
+      if (event.utmSource) {
+        return {
+          source: event.utmSource,
+          medium: event.utmMedium,
+          campaign: event.utmCampaign,
+        }
+      }
+
+      const fromUser = event.userId ? userUtmById.get(event.userId) : undefined
+      if (fromUser) {
+        return {
+          source: fromUser.utmSource,
+          medium: event.utmMedium || fromUser.utmMedium,
+          campaign: event.utmCampaign || fromUser.utmCampaign,
+        }
+      }
+
+      return {
+        source: null,
+        medium: event.utmMedium,
+        campaign: event.utmCampaign,
+      }
+    }
 
     // Группируем по источникам
     const sourceStats: Record<string, {
@@ -73,13 +128,19 @@ export async function GET(req: NextRequest) {
     }> = {}
 
     for (const event of events) {
-      const key = `${event.utmSource || 'direct'}_${event.utmMedium || 'none'}_${event.utmCampaign || 'none'}`
-      
+      const utm = resolveUtm(event)
+
+      // Фильтры применяем уже к восстановленным меткам
+      if (source && (utm.source || 'direct') !== source) continue
+      if (campaign && (utm.campaign || 'none') !== campaign) continue
+
+      const key = `${utm.source || 'direct'}_${utm.medium || 'none'}_${utm.campaign || 'none'}`
+
       if (!sourceStats[key]) {
         sourceStats[key] = {
-          source: event.utmSource || 'direct',
-          medium: event.utmMedium || 'none',
-          campaign: event.utmCampaign || 'none',
+          source: utm.source || 'direct',
+          medium: utm.medium || 'none',
+          campaign: utm.campaign || 'none',
           views: 0,
           registrations: 0,
           planSelects: 0,
@@ -122,7 +183,8 @@ export async function GET(req: NextRequest) {
     // Преобразуем в массив и добавляем вычисляемые метрики
     const analytics = Object.values(sourceStats).map(stats => ({
       ...stats,
-      conversionRate: stats.views > 0 
+      revenue: Number(stats.revenue.toFixed(2)),
+      conversionRate: stats.views > 0
         ? Number(((stats.registrations / stats.views) * 100).toFixed(2))
         : 0,
       paymentRate: stats.registrations > 0
@@ -142,7 +204,7 @@ export async function GET(req: NextRequest) {
       views: analytics.reduce((sum, s) => sum + s.views, 0),
       registrations: analytics.reduce((sum, s) => sum + s.registrations, 0),
       payments: analytics.reduce((sum, s) => sum + s.payments, 0),
-      revenue: analytics.reduce((sum, s) => sum + s.totalValue, 0),
+      revenue: Number(analytics.reduce((sum, s) => sum + s.totalValue, 0).toFixed(2)),
       serverCreates: analytics.reduce((sum, s) => sum + s.serverCreates, 0),
       serverRenews: analytics.reduce((sum, s) => sum + s.serverRenews, 0),
     }
@@ -208,9 +270,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Формируем условия для удаления
-    const where: any = {}
-    
-    if (source) where.utmSource = source
+    const where: any = { utmSource: source }
     if (medium && medium !== 'none') where.utmMedium = medium
     if (campaign && campaign !== 'none') where.utmCampaign = campaign
 
@@ -219,10 +279,34 @@ export async function DELETE(req: NextRequest) {
       where
     })
 
+    // Дополнительно удаляем события без меток, которые в аналитике относятся
+    // к этому источнику по профилю пользователя (оплаты из вебхуков)
+    const userWhere: any = { utmSource: source }
+    if (medium && medium !== 'none') userWhere.utmMedium = medium
+    if (campaign && campaign !== 'none') userWhere.utmCampaign = campaign
+
+    const users = await prisma.user.findMany({
+      where: userWhere,
+      select: { id: true },
+    })
+
+    let inheritedCount = 0
+    if (users.length > 0) {
+      const inherited = await prisma.marketingEvent.deleteMany({
+        where: {
+          utmSource: null,
+          userId: { in: users.map(u => u.id) },
+        },
+      })
+      inheritedCount = inherited.count
+    }
+
+    const total = result.count + inheritedCount
+
     return NextResponse.json({
       success: true,
-      deleted: result.count,
-      message: `Удалено ${result.count} событий`
+      deleted: total,
+      message: `Удалено ${total} событий`
     })
   } catch (error: any) {
     console.error('[API] Error deleting marketing events:', error)

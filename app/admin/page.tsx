@@ -115,6 +115,17 @@ interface ServerData {
   egg: { id: string; name: string } | null
 }
 
+interface PermanentDeleteInfo {
+  refundAmount: number
+  refundPercentage: number
+  usedDays: number
+  remainingDays: number
+  totalDays: number
+  alreadyRefunded: boolean
+  previousRefundAmount: number | null
+  currentBalance: number
+}
+
 interface PromoCode {
   id: string
   code: string
@@ -173,6 +184,13 @@ export default function AdminPage() {
   const [editingStatus, setEditingStatus] = useState<ServiceStatus | null>(null)
   const [syncingStatuses, setSyncingStatuses] = useState(false)
   
+  // Полное удаление удалённых серверов
+  const [permDeleteServer, setPermDeleteServer] = useState<ServerData | null>(null)
+  const [permDeleteInfo, setPermDeleteInfo] = useState<PermanentDeleteInfo | null>(null)
+  const [permDeleteReason, setPermDeleteReason] = useState('')
+  const [permDeleteLoading, setPermDeleteLoading] = useState(false)
+  const [permDeleteCalculating, setPermDeleteCalculating] = useState<string | null>(null)
+
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editingUserForm, setEditingUserForm] = useState({ name: '', email: '', newPassword: '', balance: 0, role: 'USER' })
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
@@ -787,6 +805,69 @@ export default function AdminPage() {
     } catch {}
   }
 
+  const openPermanentDelete = async (server: ServerData) => {
+    setPermDeleteCalculating(server.id)
+    try {
+      const r = await fetch(`/api/admin/servers/permanent-delete?serverId=${server.id}`)
+      const d = await r.json()
+      if (!r.ok) {
+        notify.error(d.error || 'Не удалось рассчитать возврат')
+        return
+      }
+      setPermDeleteInfo({
+        refundAmount: d.refund?.refundAmount ?? 0,
+        refundPercentage: d.refund?.refundPercentage ?? 0,
+        usedDays: d.refund?.usedDays ?? 0,
+        remainingDays: d.refund?.remainingDays ?? 0,
+        totalDays: d.refund?.totalDays ?? 0,
+        alreadyRefunded: Boolean(d.alreadyRefunded),
+        previousRefundAmount: d.previousRefundAmount ?? null,
+        currentBalance: d.user?.currentBalance ?? 0,
+      })
+      setPermDeleteReason('')
+      setPermDeleteServer(server)
+    } catch {
+      notify.error('Ошибка при расчёте возврата')
+    } finally {
+      setPermDeleteCalculating(null)
+    }
+  }
+
+  const closePermanentDelete = () => {
+    setPermDeleteServer(null)
+    setPermDeleteInfo(null)
+    setPermDeleteReason('')
+  }
+
+  const confirmPermanentDelete = async (withRefund: boolean) => {
+    if (!permDeleteServer) return
+    const question = withRefund
+      ? `Удалить сервер "${permDeleteServer.name}" из БД и вернуть средства пользователю?`
+      : `Удалить сервер "${permDeleteServer.name}" из БД без возврата средств?`
+    if (!confirm(question)) return
+
+    setPermDeleteLoading(true)
+    try {
+      const r = await fetch('/api/admin/servers/permanent-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serverId: permDeleteServer.id, reason: permDeleteReason || undefined, withRefund }),
+      })
+      const d = await r.json()
+      if (r.ok) {
+        closePermanentDelete()
+        loadServers()
+        notify.success(d.message || 'Сервер удалён')
+      } else {
+        notify.error(d.error || 'Ошибка при удалении сервера')
+      }
+    } catch {
+      notify.error('Ошибка при удалении сервера')
+    } finally {
+      setPermDeleteLoading(false)
+    }
+  }
+
   const deleteNode = async (id: string, force: boolean = false) => {
     const node = nodes.find(n => n.id === id)
     if (!node) return
@@ -1319,11 +1400,21 @@ export default function AdminPage() {
                           {server.status === 'SUSPENDED' && (
                             <button onClick={() => serverAction(server.id, 'unsuspend')} className="text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors">Unsuspend</button>
                           )}
-                          {server.status !== 'DELETED' && (
+                          {server.status !== 'DELETED' ? (
                             <>
                               <button onClick={() => serverAction(server.id, 'delete')} className="text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors">Delete</button>
                               <button onClick={() => serverAction(server.id, 'force_delete')} className="text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors" title="Принудительное удаление (только из БД)">Force</button>
                             </>
+                          ) : (
+                            <button
+                              onClick={() => openPermanentDelete(server)}
+                              disabled={permDeleteCalculating === server.id}
+                              className="text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors flex items-center gap-1 disabled:opacity-50"
+                              title="Полностью удалить из БД (с возвратом или без)"
+                            >
+                              <Trash2 className="size-3" />
+                              {permDeleteCalculating === server.id ? 'Расчёт...' : 'Удалить'}
+                            </button>
                           )}
                         </div>
                       </td>
@@ -3324,6 +3415,103 @@ export default function AdminPage() {
                   className="flex-1 px-4 py-2 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors"
                 >
                   Сохранить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {permDeleteServer && permDeleteInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="font-medium text-foreground">Удаление сервера из БД</h2>
+              <button onClick={closePermanentDelete} disabled={permDeleteLoading} className="size-8 rounded-lg flex items-center justify-center hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="rounded-xl bg-accent/40 p-4">
+                <p className="text-xs text-muted-foreground">Сервер</p>
+                <p className="text-sm font-medium text-foreground">{permDeleteServer.name}</p>
+                <p className="text-xs text-muted-foreground mt-2">Владелец</p>
+                <p className="text-sm text-foreground">{permDeleteServer.user.email}</p>
+                <p className="text-xs text-muted-foreground mt-2">Баланс</p>
+                <p className="text-sm text-foreground">{permDeleteInfo.currentBalance.toFixed(2)} ₽</p>
+              </div>
+
+              {permDeleteInfo.alreadyRefunded ? (
+                <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
+                  <p className="text-sm font-medium text-blue-500">Средства уже возвращены ранее</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Возвращено: <span className="text-foreground font-medium">{(permDeleteInfo.previousRefundAmount ?? 0).toFixed(2)} ₽</span>. Повторный возврат не производится.
+                  </p>
+                </div>
+              ) : permDeleteInfo.refundAmount > 0 ? (
+                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-muted-foreground">Сумма к возврату</span>
+                    <span className="text-xl font-bold text-emerald-500">{permDeleteInfo.refundAmount.toFixed(2)} ₽</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Использовано</p>
+                      <p className="font-medium text-foreground">{permDeleteInfo.usedDays} дн.</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Осталось</p>
+                      <p className="font-medium text-emerald-500">{permDeleteInfo.remainingDays} дн.</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Всего</p>
+                      <p className="font-medium text-foreground">{permDeleteInfo.totalDays} дн.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-accent/40 border border-border p-4">
+                  <p className="text-xs text-muted-foreground">Возвращать нечего — срок оплаты истёк.</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1.5">Причина (опционально)</label>
+                <textarea
+                  value={permDeleteReason}
+                  onChange={(e) => setPermDeleteReason(e.target.value)}
+                  rows={2}
+                  placeholder="Например: очистка удалённых серверов"
+                  className="w-full px-3 py-2 rounded-lg bg-accent border border-border text-sm text-foreground resize-none focus:outline-none"
+                />
+              </div>
+
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3">
+                <p className="text-xs text-red-500">Сервер будет безвозвратно удалён из базы данных. Действие нельзя отменить.</p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => confirmPermanentDelete(true)}
+                  disabled={permDeleteLoading}
+                  className="w-full px-4 py-2.5 text-sm rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                >
+                  {permDeleteLoading ? 'Обработка...' : 'Удалить с возвратом средств'}
+                </button>
+                <button
+                  onClick={() => confirmPermanentDelete(false)}
+                  disabled={permDeleteLoading}
+                  className="w-full px-4 py-2.5 text-sm rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {permDeleteLoading ? 'Обработка...' : 'Удалить без возврата'}
+                </button>
+                <button
+                  onClick={closePermanentDelete}
+                  disabled={permDeleteLoading}
+                  className="w-full px-4 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  Отмена
                 </button>
               </div>
             </div>

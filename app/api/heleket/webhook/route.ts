@@ -144,9 +144,10 @@ export async function POST(request: NextRequest) {
       await trackMarketingEvent({
         eventType: 'PAYMENT_SUCCESS',
         userId,
-        amount: totalAmount,
+        amount: rubAmount, // Выручка без бонуса — реально оплаченная сумма в рублях
         metadata: {
           method: 'Heleket',
+          credited: totalAmount,
           transactionId: uuid,
           currency,
           bonus: bonus > 0 ? bonus : undefined,

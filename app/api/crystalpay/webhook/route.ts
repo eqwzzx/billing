@@ -159,9 +159,10 @@ export async function POST(request: NextRequest) {
       await trackMarketingEvent({
         eventType: 'PAYMENT_SUCCESS',
         userId,
-        amount: totalAmount,
+        amount: paymentAmount, // Выручка без бонуса — реально оплаченная сумма
         metadata: {
           method: 'CrystalPay',
+          credited: totalAmount,
           transactionId: id,
           bonus: bonus > 0 ? bonus : undefined,
         },

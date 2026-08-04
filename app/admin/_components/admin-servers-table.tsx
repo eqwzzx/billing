@@ -180,9 +180,14 @@ export function AdminServersTable({
     }
   }
 
-  const handlePermanentDeleteConfirm = async () => {
+  const handlePermanentDeleteConfirm = async (withRefund: boolean) => {
     if (!permanentDeleteData) return
-    
+
+    const question = withRefund
+      ? `Удалить сервер "${permanentDeleteData.serverName}" из БД и вернуть средства пользователю?`
+      : `Удалить сервер "${permanentDeleteData.serverName}" из БД без возврата средств?`
+    if (!confirm(question)) return
+
     setLoadingPermanentDelete(true)
     try {
       const response = await fetch('/api/admin/servers/permanent-delete', {
@@ -191,6 +196,7 @@ export function AdminServersTable({
         body: JSON.stringify({
           serverId: permanentDeleteData.serverId,
           reason: permanentDeleteReason,
+          withRefund,
         }),
       })
 
@@ -263,7 +269,7 @@ export function AdminServersTable({
                         onClick={() => handlePermanentDeleteClick(server.id, server.name, server.user.email)}
                         disabled={calculatingPermanentDelete}
                         className="text-xs px-2.5 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors flex items-center gap-1 disabled:opacity-50"
-                        title="Полностью удалить с возвратом средств"
+                        title="Полностью удалить из БД (с возвратом или без)"
                       >
                         <Trash2 className="size-3" />
                         Удалить полностью
@@ -510,13 +516,20 @@ export function AdminServersTable({
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="space-y-2">
               <button
-                onClick={handlePermanentDeleteConfirm}
+                onClick={() => handlePermanentDeleteConfirm(true)}
                 disabled={loadingPermanentDelete}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2.5 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loadingPermanentDelete ? "Удаление..." : "Подтвердить удаление"}
+                {loadingPermanentDelete ? "Удаление..." : "Удалить с возвратом средств"}
+              </button>
+              <button
+                onClick={() => handlePermanentDeleteConfirm(false)}
+                disabled={loadingPermanentDelete}
+                className="w-full px-4 py-2.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingPermanentDelete ? "Удаление..." : "Удалить без возврата"}
               </button>
               <button
                 onClick={() => {
@@ -525,7 +538,7 @@ export function AdminServersTable({
                   setPermanentDeleteReason("")
                 }}
                 disabled={loadingPermanentDelete}
-                className="px-4 py-2.5 rounded-lg border border-border bg-background text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground hover:bg-accent transition-colors disabled:opacity-50"
               >
                 Отмена
               </button>
