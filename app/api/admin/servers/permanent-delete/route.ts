@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
           targetType: "SERVER",
           targetId: server.id,
           reason: reason || null,
-          details: {
+          details: JSON.stringify({
             serverName: server.name,
             userId: server.userId,
             userEmail: server.user.email,
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
             usedDays: refundCalc?.usedDays || 0,
             totalDays: refundCalc?.totalDays || 0,
             remainingDays: refundCalc?.remainingDays || 0,
-          },
+          }),
         },
       })
 
